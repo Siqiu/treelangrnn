@@ -96,6 +96,7 @@ class RNNModel(nn.Module):
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
 
+        print(loss)
         return loss
 
     def evaluate(self, data):
