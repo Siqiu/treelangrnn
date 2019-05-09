@@ -76,12 +76,12 @@ if torch.cuda.is_available():
 
 def model_save(fn):
     with open(fn, 'wb') as f:
-        torch.save([model, criterion, optimizer], f)
+        torch.save([model, optimizer], f)
 
 def model_load(fn):
     global model, criterion, optimizer
     with open(fn, 'rb') as f:
-        model, criterion, optimizer = torch.load(f)
+        model, optimizer = torch.load(f)
 
 import os
 import hashlib
@@ -131,13 +131,12 @@ print('Model total parameters:', total_params)
 def evaluate(data_source, batch_size=1):
     # Turn on evaluation mode which disables dropout.
     model.eval()
-    loss =  model.evaluate(data_source, eos_tokens)
+    loss =  model.evaluate(data_source)
     return loss
 
 
 def train():
     # Turn on training mode which enables dropout.
-    if args.model == 'QRNN': model.reset()
     total_loss = 0
     start_time = time.time()
     ntokens = len(corpus.dictionary)
@@ -157,7 +156,6 @@ def train():
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
-        hidden = repackage_hidden(hidden)
         optimizer.zero_grad()
 
         raw_loss = model(data)

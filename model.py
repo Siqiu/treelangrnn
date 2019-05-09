@@ -35,7 +35,7 @@ class RNNModel(nn.Module):
         self.nsamples = 10
         self.ntoken = ntoken
 
-        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
+        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
 
     def init_weights(self):
         initrange = 0.1
@@ -60,11 +60,11 @@ class RNNModel(nn.Module):
         raw_output = raw_output.view(seq_len, bsz, -1)
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [dist_fn(raw_output[i-1], raw_output[i]).pow(2) if i > 0 else dist_fn(hidden, raw_output[i]).pow(2) for i in range(seq_len)]
+        pos_sample_distances = [dist_fn(raw_output[i-1], raw_output[i]).pow(2) if i > 0 else dist_fn(hidden[0], raw_output[i]).pow(2) for i in range(seq_len)]
         raw_output = raw_output.view(seq_len*bsz, -1)
 
         # we want positive terms in the sum as well
-        sum_of_exp = torch.zeros(seq_len*bsz)
+        sum_of_exp = torch.zeros(seq_len*bsz).cuda()
         for i in range(seq_len):
             sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
         
@@ -77,8 +77,8 @@ class RNNModel(nn.Module):
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
         samples_emb = self.lockdrop(samples_emb, self.dropouti)
 
-        weights_ih, bias_ih = self.rnn.weight_ih_l[0], self.rnn.bias_ih_l[0]  # only one layer for the moment
-        weights_hh, bias_hh = self.rnn.weight_hh_l[0], self.rnn.bias_hh_l[0]
+        weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
+        weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
 
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
@@ -102,8 +102,8 @@ class RNNModel(nn.Module):
         dist_fn = nn.PairwiseDistance(p=2)
 
         # get weights and compute WX for all words
-        weights_ih, bias_ih = self.rnn.weight_ih_l[0], self.rnn.bias_ih_l[0]  # only one layer for the moment
-        weights_hh, bias_hh = self.rnn.weight_hh_l[0], self.rnn.bias_hh_l[0]
+        weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
+        weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
 
         all_words = torch.LongTensor([i for i in range(self.ntoken)]).cuda()
         all_words = embedded_dropout(self.encoder, all_words, dropout=self.dropoute if self.training else 0)
@@ -112,14 +112,14 @@ class RNNModel(nn.Module):
 
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
-        for i in range(data.size(0)):
+        for i in range(data.size(0)-1):
 
-            hidden_times_U = torch.nn.functional.linear(hidden.repeat(self.ntoken, 1), weights_hh, bias_hh)
+            hidden_times_U = torch.nn.functional.linear(hidden.repeat(1, self.ntoken, 1), weights_hh, bias_hh)
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
-            distance = dist_fn(hidden, output)
-            softmaxed = torch.nn.functional.log_softmax(distance + self.eps, dim=0)
-            raw_loss = -softmaxed[target].item()
+            distance = dist_fn(hidden, output).pow(2)
+            softmaxed = torch.nn.functional.log_softmax(-distance + self.eps, dim=1)
+            raw_loss = -softmaxed[0][data[i]].item()
 
             total_loss += raw_loss / data.size(0)
 
