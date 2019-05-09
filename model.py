@@ -32,7 +32,7 @@ class RNNModel(nn.Module):
 
         self.nonlinearity = nn.Tanh()
         self.eps = 1e-6
-        self.nsamples = 10
+        self.nsamples = 20
         self.ntoken = ntoken
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
