@@ -66,8 +66,8 @@ class RNNModel(nn.Module):
 
         # we want positive terms in the sum as well
         sum_of_exp = torch.zeros(seq_len*bsz).cuda()
-        #for i in range(seq_len):
-        #    sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
+        for i in range(seq_len):
+            sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
         
         # init loss
         loss = sum(pos_sample_distances).sum() / len(pos_sample_distances)
