@@ -83,8 +83,6 @@ class RNNModel(nn.Module):
         weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
 
-        print(weights_ih)
-
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
 
