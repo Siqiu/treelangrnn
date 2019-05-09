@@ -32,7 +32,7 @@ class RNNModel(nn.Module):
 
         self.nonlinearity = nn.Sigmoid()#nn.Tanh()
         self.eps = 1e-6
-        self.nsamples = 20
+        self.nsamples = 10
         self.ntoken = ntoken
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
@@ -59,6 +59,8 @@ class RNNModel(nn.Module):
         raw_output = self.lockdrop(raw_output, self.dropout)    # seq_len x bsz x nhid
         raw_output = raw_output.view(seq_len, bsz, -1)
         raw_output = torch.cat((hidden, raw_output), 0)
+
+        print(raw_output)
 
         # initialize loss w/ positive terms
         pos_sample_distances = [dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
