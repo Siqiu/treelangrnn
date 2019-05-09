@@ -62,8 +62,8 @@ class RNNModel(nn.Module):
 
         # initialize loss w/ positive terms
         pos_sample_distances = [dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
-        hidden_reference = raw_output[:-1].view(seq_len*bsz, -1)
-        raw_output = raw_output[1:].view(seq_len*bsz, -1)
+        hidden_reference = raw_output[1:].view(seq_len*bsz, -1)
+        raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
         # we want positive terms in the sum as well
         sum_of_exp = torch.zeros(seq_len*bsz).cuda()
@@ -77,7 +77,7 @@ class RNNModel(nn.Module):
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
 
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
-        samples_emb = self.lockdrop(samples_emb, self.dropouti)
+        print(samples_emb.size())#samples_emb = self.lockdrop(samples_emb, self.dropouti)
 
         weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
