@@ -70,7 +70,7 @@ class RNNModel(nn.Module):
         #    sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
         
         # init loss
-        loss = sum(pos_sample_distances).sum()
+        loss = sum(pos_sample_distances).sum() / len(pos_sample_distances)
         #loss = 0
         
         
@@ -96,9 +96,9 @@ class RNNModel(nn.Module):
 
             # compute loss term
             distance = dist_fn(raw_output, output).pow(2)
-            sum_of_exp = sum_of_exp + torch.exp(-distance)
+            sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
 
-        loss = loss - torch.log(sum_of_exp + self.eps).sum()
+        loss = loss + torch.log(sum_of_exp + self.eps).sum()
         
 
         return loss
