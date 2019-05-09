@@ -60,8 +60,6 @@ class RNNModel(nn.Module):
         raw_output = raw_output.view(seq_len, bsz, -1)
         raw_output = torch.cat((hidden, raw_output), 0)
 
-
-
         # initialize loss w/ positive terms
         pos_sample_distances = [dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
@@ -75,7 +73,7 @@ class RNNModel(nn.Module):
         loss = sum(pos_sample_distances).sum()
         #loss = 0
         
-        '''
+        
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
 
@@ -106,8 +104,8 @@ class RNNModel(nn.Module):
             sum_of_exp = sum_of_exp + torch.exp(-distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
-        '''
-        print(self.rnn.weight_ih_l0)
+        
+
         return loss
 
     def evaluate(self, data):
