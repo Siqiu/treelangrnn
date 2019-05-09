@@ -153,8 +153,8 @@ class RNNModel(nn.Module):
         all_words_times_W = torch.nn.functional.linear(all_words, weights_ih, bias_ih)
 
         # iterate over data set and compute loss
-        total_loss, hidden = 0, self.init_hidden(1)
-        for i in range(data.size(0)-1):
+        total_loss, hidden = 0, self.init_hidden(1).zero_()
+        for i in range(data.size(0)):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
