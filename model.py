@@ -85,8 +85,6 @@ class RNNModel(nn.Module):
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
 
-        print(samples_times_W[0])
-
         # iterate over samples to update loss
         for i in range(self.nsamples):
 
@@ -95,9 +93,9 @@ class RNNModel(nn.Module):
 
             # compute loss term
             distance = dist_fn(raw_output, output).pow(2)
-            print(distance)
             sum_of_exp = sum_of_exp + torch.exp(-distance)
 
+            print(torch.exp(-distance))
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
         
         return loss
@@ -125,10 +123,6 @@ class RNNModel(nn.Module):
             distance = dist_fn(hidden[0], output).pow(2)
             softmaxed = torch.nn.functional.log_softmax(-10 *distance + self.eps, dim=0)
             raw_loss = -softmaxed[data[i]].item()
-
-            print(hidden)
-            print(data[i], torch.exp(softmaxed))
-            print(distance)
 
             total_loss += raw_loss / data.size(0)
 
