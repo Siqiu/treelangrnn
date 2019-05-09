@@ -76,14 +76,16 @@ class RNNModel(nn.Module):
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
 
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
-        print(samples_emb.size())#samples_emb = self.lockdrop(samples_emb, self.dropouti)
-        print(raw_output.size())
+        #samples_emb = self.lockdrop(samples_emb, self.dropouti)
 
         weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
 
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
+
+        print(samples_times_W.size())
+        print(hiddens_times_U.size())
 
         # iterate over samples to update loss
         for i in range(self.nsamples):
