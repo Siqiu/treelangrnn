@@ -32,11 +32,11 @@ class RNNModel(nn.Module):
 
         self.nonlinearity = nn.Tanh()
         self.eps = 1e-6
-        self.nsamples = 10
+        self.nsamples = 3
         self.temp = 60
         self.ntoken = ntoken
 
-        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
+        self.sampler = NegativeSampler(self.nsamples, torch.FloatTensor([0., 1., 1.]))#torch.ones(self.ntoken))# if frequencies is None else frequencies)
 
     def init_weights(self):
         initrange = 0.1
@@ -67,8 +67,8 @@ class RNNModel(nn.Module):
 
         # we want positive terms in the sum as well
         sum_of_exp = torch.zeros(seq_len*bsz).cuda()
-        for i in range(seq_len):
-            sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
+        #for i in range(seq_len):
+        #    sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
         
         # init loss
         loss = sum(pos_sample_distances).sum() / len(pos_sample_distances)
@@ -78,7 +78,7 @@ class RNNModel(nn.Module):
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
 
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
-        #samples_emb = self.lockdrop(samples_emb, self.dropouti)
+        print(samples)#samples_emb = self.lockdrop(samples_emb, self.dropouti)
 
         weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
