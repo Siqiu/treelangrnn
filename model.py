@@ -88,11 +88,14 @@ class RNNModel(nn.Module):
         # iterate over samples to update loss
         for i in range(self.nsamples):
 
+            print('iter')
+
             # compute output of negative samples
             output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
 
             # compute loss term
             distance = dist_fn(raw_output, output).pow(2)
+            print(distance)
             sum_of_exp = sum_of_exp + torch.exp(-distance)
 
             print(torch.exp(-distance))
