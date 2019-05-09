@@ -29,5 +29,4 @@ def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
         data = source[i:i+1+seq_len]
         target = source[i+1:i+1+seq_len].view(-1)
 
-    print(data)
     return data, target
