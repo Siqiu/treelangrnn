@@ -26,7 +26,8 @@ def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
 
     if eos_tokens is None:
         seq_len = min(seq_len if seq_len else args.bptt, len(source) - 1 - i)
-        data = source[i:i+seq_len]
+        data = source[i:i+1+seq_len]
         target = source[i+1:i+1+seq_len].view(-1)
 
+    print(data)
     return data, target
