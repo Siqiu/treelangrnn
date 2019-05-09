@@ -84,14 +84,14 @@ class RNNModel(nn.Module):
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
 
-        print(samples_times_W.size())
-        print(hiddens_times_U.size())
+        print(samples_times_W[0])
 
         # iterate over samples to update loss
         for i in range(self.nsamples):
 
             # compute output of negative samples
             output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
+            print(output.size())
 
             # compute loss term
             distance = dist_fn(raw_output, output).pow(2)
