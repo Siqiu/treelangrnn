@@ -33,6 +33,7 @@ class RNNModel(nn.Module):
         self.nonlinearity = nn.Tanh()
         self.eps = 1e-6
         self.nsamples = 10
+        self.temp = 60
         self.ntoken = ntoken
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
@@ -61,13 +62,13 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
+        pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
         # we want positive terms in the sum as well
         sum_of_exp = torch.zeros(seq_len*bsz).cuda()
-        #for i in range(seq_len):
-        #    sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
+        for i in range(seq_len):
+            sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
         
         # init loss
         loss = sum(pos_sample_distances).sum() / len(pos_sample_distances)
@@ -92,7 +93,7 @@ class RNNModel(nn.Module):
             output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
 
             # compute loss term
-            distance = dist_fn(raw_output, output).pow(2)
+            distance = self.temp * dist_fn(raw_output, output).pow(2)
             sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
@@ -121,7 +122,7 @@ class RNNModel(nn.Module):
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
             distance = dist_fn(hidden[0], output).pow(2)
-            softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
+            softmaxed = torch.nn.functional.log_softmax(-self.temp * distance, dim=0)
             raw_loss = -softmaxed[data[i]]
             total_loss += raw_loss / data.size(0)
 
@@ -151,7 +152,7 @@ class RNNModel(nn.Module):
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
             distance = dist_fn(hidden[0], output).pow(2)
-            softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
+            softmaxed = torch.nn.functional.log_softmax(-self.temp * distance, dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
