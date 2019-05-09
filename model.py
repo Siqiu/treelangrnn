@@ -157,6 +157,9 @@ class RNNModel(nn.Module):
 
             total_loss += raw_loss / data.size(0)
 
+            if i == 2:
+                print(softmaxed)
+
             hidden = output[data[i]].view(1, 1, -1)
 
         return total_loss
