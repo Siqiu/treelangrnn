@@ -119,13 +119,13 @@ class RNNModel(nn.Module):
 
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
-        for i in range(data.size(0)-1):
+        for i in range(data.size(0)):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
             distance = dist_fn(hidden[0], output).pow(2)
-            softmaxed = torch.nn.functional.log_softmax(-100*distance + self.eps, dim=0)
+            softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
             raw_loss = -softmaxed[data[i]]
 
             total_loss += raw_loss / data.size(0)
@@ -156,13 +156,12 @@ class RNNModel(nn.Module):
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
             distance = dist_fn(hidden[0], output).pow(2)
-            softmaxed = torch.nn.functional.log_softmax(-100*distance + self.eps, dim=0)
+            softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
 
             hidden = output[data[i]].view(1, 1, -1)
-            print(data[i], softmaxed)
 
         return total_loss
 
