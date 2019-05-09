@@ -91,11 +91,11 @@ class RNNModel(nn.Module):
 
             # compute output of negative samples
             output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
-            print(output.size())
 
             # compute loss term
             distance = dist_fn(raw_output, output).pow(2)
             sum_of_exp = sum_of_exp + torch.exp(-distance)
+            print(sum_of_exp)
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
 
