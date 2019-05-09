@@ -49,6 +49,9 @@ class RNNModel(nn.Module):
         # get batch size and sequence length
         seq_len, bsz = data.size()
 
+
+
+        '''
         # process positive samples
         hidden = self.init_hidden(bsz)      # bsz x nhid
 
@@ -97,9 +100,40 @@ class RNNModel(nn.Module):
             sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
-        
-
+        '''
         return loss
+
+
+    def train_crossentropy(self, data):
+
+        dist_fn = nn.PairwiseDistance(p=2)
+
+        # get weights and compute WX for all words
+        weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
+        weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
+
+        all_words = torch.LongTensor([i for i in range(self.ntoken)]).cuda()
+        all_words = embedded_dropout(self.encoder, all_words, dropout=self.dropoute if self.training else 0)
+
+        all_words_times_W = torch.nn.functional.linear(all_words, weights_ih, bias_ih)
+
+        # iterate over data set and compute loss
+        total_loss, hidden = 0, self.init_hidden(1)
+        for i in range(data.size(0)-1):
+
+            hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
+            output = self.nonlinearity(all_words_times_W + hidden_times_U)
+
+            distance = dist_fn(hidden[0], output).pow(2)
+            softmaxed = torch.nn.functional.log_softmax(-10 *distance + self.eps, dim=0)
+            raw_loss = -softmaxed[data[i]]
+
+            total_loss += raw_loss / data.size(0)
+
+            hidden = output[data[i]].view(1, 1, -1)
+
+        return total_loss
+
 
     def evaluate(self, data):
 
