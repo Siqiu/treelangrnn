@@ -123,7 +123,7 @@ class RNNModel(nn.Module):
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
             distance = dist_fn(hidden[0], output).pow(2)
-            softmaxed = torch.nn.functional.log_softmax(-50*distance + self.eps, dim=0)
+            softmaxed = torch.nn.functional.log_softmax(-10*distance + self.eps, dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
             print(hidden)
