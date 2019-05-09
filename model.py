@@ -35,7 +35,7 @@ class RNNModel(nn.Module):
         self.nsamples = 10
         self.ntoken = ntoken
 
-        self.sampler = NegativeSampler(self.nsamples, torch.FloatTensor([4,4,4,3,3,2,2,2,1,1]).cuda())# if frequencies is None else frequencies)
+        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
 
     def init_weights(self):
         initrange = 0.1
@@ -76,7 +76,7 @@ class RNNModel(nn.Module):
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
 
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
-        print(samples_emb.size())#samples_emb = self.lockdrop(samples_emb, self.dropouti)
+        print(self.nsamples*bsz*seq_len, samples_emb.size())#samples_emb = self.lockdrop(samples_emb, self.dropouti)
 
         weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
@@ -96,7 +96,6 @@ class RNNModel(nn.Module):
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
 
-        print(loss)
         return loss
 
     def evaluate(self, data):
