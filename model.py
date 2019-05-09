@@ -61,7 +61,7 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
+        pos_sample_distances = [65*dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
         # we want positive terms in the sum as well
@@ -92,7 +92,7 @@ class RNNModel(nn.Module):
             output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
 
             # compute loss term
-            distance = dist_fn(raw_output, output).pow(2)
+            distance = 65*dist_fn(raw_output, output).pow(2)
             sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
