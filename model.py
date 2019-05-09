@@ -49,9 +49,6 @@ class RNNModel(nn.Module):
         # get batch size and sequence length
         seq_len, bsz = data.size()
 
-
-
-        '''
         # process positive samples
         hidden = self.init_hidden(bsz)      # bsz x nhid
 
@@ -75,8 +72,7 @@ class RNNModel(nn.Module):
         # init loss
         loss = sum(pos_sample_distances).sum() / len(pos_sample_distances)
         #loss = 0
-        
-        
+           
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
 
@@ -100,7 +96,7 @@ class RNNModel(nn.Module):
             sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
-        '''
+        
         return loss
 
 
