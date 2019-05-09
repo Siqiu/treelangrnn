@@ -46,6 +46,8 @@ class RNNModel(nn.Module):
         # need this later on
         dist_fn = nn.PairwiseDistance(p=2)
 
+        print(data)
+
         # get batch size and sequence length
         seq_len, bsz = data.size()
 
@@ -56,11 +58,12 @@ class RNNModel(nn.Module):
         emb = self.lockdrop(emb, self.dropouti)
 
         raw_output, new_hidden = self.rnn(emb, hidden)          # apply single layer rnn
+        print(raw_output)
         raw_output = self.lockdrop(raw_output, self.dropout)    # seq_len x bsz x nhid
         raw_output = raw_output.view(seq_len, bsz, -1)
         raw_output = torch.cat((hidden, raw_output), 0)
 
-        print(raw_output)
+
 
         # initialize loss w/ positive terms
         pos_sample_distances = [dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
