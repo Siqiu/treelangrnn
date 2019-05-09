@@ -36,7 +36,7 @@ class RNNModel(nn.Module):
         self.temp = 60
         self.ntoken = ntoken
 
-        self.sampler = NegativeSampler(self.nsamples, torch.FloatTensor([0., 1., 1.]))#torch.ones(self.ntoken))# if frequencies is None else frequencies)
+        self.sampler = NegativeSampler(self.nsamples, torch.FloatTensor([3., 1., 1.]))#torch.ones(self.ntoken))# if frequencies is None else frequencies)
 
     def init_weights(self):
         initrange = 0.1
