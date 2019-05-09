@@ -30,7 +30,7 @@ class RNNModel(nn.Module):
         self.dropouth = dropouth
         self.dropoute = dropoute
 
-        self.nonlinearity = nn.Sigmoid()#nn.Tanh()
+        self.nonlinearity = nn.Tanh()
         self.eps = 1e-6
         self.nsamples = 10
         self.ntoken = ntoken
