@@ -94,7 +94,7 @@ class RNNModel(nn.Module):
 
             # compute loss term
             distance = dist_fn(raw_output, output).pow(2)
-            distance = self.temp * torch.clamp(distance, 0, 1./50)
+            distance = self.temp * torch.clamp(distance, 0, 0.1)
             sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
