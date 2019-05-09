@@ -18,7 +18,7 @@ class RNNModel(nn.Module):
         self.drop = nn.Dropout(dropout)
         self.encoder = nn.Embedding(ntoken, ninp)
 
-        self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)
+        self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0, nonlinearity='relu')
         print(self.rnn)
 
         self.init_weights()
@@ -30,7 +30,7 @@ class RNNModel(nn.Module):
         self.dropouth = dropouth
         self.dropoute = dropoute
 
-        self.nonlinearity = nn.Tanh()
+        self.nonlinearity = nn.ReLU()#nn.Tanh()
         self.eps = 1e-6
         self.nsamples = 10
         self.ntoken = ntoken
