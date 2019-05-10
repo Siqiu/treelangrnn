@@ -47,7 +47,6 @@ def batchify_sorted(data, bsz, args, nsentences_of_length):
         else:
             new_data = torch.cat((new_data, batchified), 0)
 
-        offset = offsetr + (nsentences*length)
 
     print(new_data)
     return new_data
