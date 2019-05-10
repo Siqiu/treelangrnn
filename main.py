@@ -58,6 +58,10 @@ parser.add_argument('--optimizer', type=str,  default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
+parser.add_argument('--temperature', type=float, default=65.,
+                    help='temperature in the exponent of the softmax.')
+parser.add_argument('--nsamples', type=int, default=10,
+                    help='number of negative samples.')
 args = parser.parse_args()
 args.tied = True
 
@@ -106,7 +110,7 @@ test_data = batchify(corpus.test, test_batch_size, args)
 
 
 ntokens = len(corpus.dictionary)
-model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.tied)
+model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature)
 ###
 if args.resume:
     print('Resuming model ...')
@@ -162,7 +166,6 @@ def train():
         raw_loss = model(data)
 
         loss = raw_loss
-        print(loss)
         '''
         See what we can do here!
 
@@ -177,7 +180,7 @@ def train():
         if args.clip: torch.nn.utils.clip_grad_norm_(params, args.clip)
         optimizer.step()
 
-        total_loss += raw_loss.data
+        total_loss += loss.data
         optimizer.param_groups[0]['lr'] = lr2
         if batch % args.log_interval == 0 and batch > 0:
             cur_loss = total_loss.item() / args.log_interval
