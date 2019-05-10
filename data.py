@@ -119,19 +119,22 @@ class Corpus(object):
         return ids
 
 
-def sort_dataset(path):
+def sort_dataset(in_path, out_path):
 
-    assert os.path.exists(path)
+    assert os.path.exists(in_path)
     # Add words to the dictionary
-    with open(path, 'r') as f:
-
+    with open(in_path, 'r') as f:
         lines = [line.split() for line in f]
-        lines.sort(key=len)
-        print([len(line) for line in lines])
+        
+    lines.sort(key=len)
+    with open(out_path, 'w') as f:
+        f.writelines(lines)
+        
 
 
 
-sort_dataset('data/penn/test.txt')
+
+sort_dataset('data/penn/test.txt', 'data/penn_sorted/test.txt')
 
 
 
