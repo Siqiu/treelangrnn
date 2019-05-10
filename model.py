@@ -10,7 +10,7 @@ from sample import NegativeSampler
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, nsamples=10, temperature=65, frequencies=None, clip_dist=0.1):
+    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, nsamples=10, temperature=65, frequencies=None, clip_dist=0.0):
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
@@ -98,7 +98,6 @@ class RNNModel(nn.Module):
             distance = dist_fn(raw_output, output).pow(2)
             if self.clip_dist:
                 distance = torch.clamp(distance, 0, self.clip_dist)
-                print('clamping')
 
             sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
 
