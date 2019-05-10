@@ -10,7 +10,7 @@ from sample import NegativeSampler
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, nsamples=10, temperature=65, frequencies=None, clip_dist=0.01):
+    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, nsamples=10, temperature=65, frequencies=None, clip_dist=0.1):
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
