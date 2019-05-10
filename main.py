@@ -174,8 +174,8 @@ def train():
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         optimizer.zero_grad()
 
-        #raw_loss = model.train_crossentropy(data)
-        raw_loss = model(data)
+        raw_loss = model.train_crossentropy(data)
+        #raw_loss = model(data)
 
         loss = raw_loss
         '''
