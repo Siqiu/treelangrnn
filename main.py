@@ -104,12 +104,11 @@ else:
 
 eval_batch_size = 1
 test_batch_size = 1
-train_data = batchify(corpus.train, args.batch_size, args)
-val_data = batchify(corpus.valid, eval_batch_size, args)
-test_data = batchify(corpus.test, test_batch_size, args)
+train_data = batchify(corpus.train, args.batch_size, args, corpus.nsentences_of_length)
+val_data = batchify(corpus.valid, eval_batch_size, args, corpus.nsentences_of_length)
+test_data = batchify(corpus.test, test_batch_size, args, corpus.nsentences_of_length)
 
 # get token frequencies and eos_tokens
-print(corpus.nsentences_of_length)
 if not args.uniform_freq: frequencies = corpus.frequencies
 eos_tokens = corpus.reset_idxs
 
@@ -165,7 +164,7 @@ def train():
         lr2 = optimizer.param_groups[0]['lr']
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
         model.train()
-        data, targets = get_batch(train_data, i, args, seq_len=seq_len)
+        data = get_batch(train_data, i, args, seq_len=seq_len)
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.

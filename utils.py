@@ -10,7 +10,12 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
-def batchify(data, bsz, args):
+def batchify(data, bsz, args, nsentences_of_length=None):
+
+    # if the data is sorted by length we do a sorted batchify
+    if not nsentences_of_length is None:
+        return batchify_sorted(data, bsz, args, nsentences_of_length)
+
     # Work out how cleanly we can divide the dataset into bsz parts.
     nbatch = data.size(0) // bsz
     # Trim off any extra elements that wouldn't cleanly fit (remainders).
@@ -21,14 +26,28 @@ def batchify(data, bsz, args):
         data = data.cuda()
     return data
 
-def batchify_sorted(data, bsz, args):
+def batchify_sorted(data, bsz, args, nsentences_of_length):
     '''
         this assumes that the dataset was sorted by length of the sentences
         such that it can batch sentences of same length together
     '''
 
-    pass
+    new_data, offset = None, 0
+    for length, nsentences in nsentences_of_length:
 
+        if nsentences < bsz:
+            offset = offset + (nsentences*length)
+            continue
+
+        batchified = batchify(data[offset:offset + (nsentences*length)], bsz, args, None)
+        
+        if new_data is None:
+            new_data = batchified
+        else:
+            new_data = torch.cat((new_data, batchified), 0)
+
+    print(new_data)
+    return new_data
 
 def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
 
