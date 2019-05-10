@@ -159,7 +159,7 @@ def train():
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
         # prevent negative sequence lengths
-        seq_len = 0
+        seq_len = 1
         while (i + seq_len < train_data.size(0)) and (not train_data[i+seq_len].data.cpu().numpy()[0] in eos_tokens): 
             print(train_data[i+seq_len].data.cpu().numpy()[0])
             seq_len += 1
