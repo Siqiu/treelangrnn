@@ -128,10 +128,11 @@ def sort_dataset(in_path, out_path):
         
     lines.sort(key=len)
     lines = [' '.join(line) for line in lines]
-    print(lines)
 
     with open(out_path, 'w') as f:
-        f.writelines(lines)
+        for line in lines:
+            print(line)
+
         
 
 
