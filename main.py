@@ -166,7 +166,7 @@ def train():
         # seq_len = min(seq_len, args.bptt + 10)
 
         lr2 = optimizer.param_groups[0]['lr']
-        optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
+        optimizer.param_groups[0]['lr'] = lr2 #* seq_len / args.bptt
         model.train()
         data = get_batch(train_data, i, args, seq_len=seq_len)
 
