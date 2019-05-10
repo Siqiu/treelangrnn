@@ -10,7 +10,7 @@ from sample import NegativeSampler
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, frequencies=None):
+    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, nsamples=10, temperature=65, frequencies=None):
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
@@ -32,8 +32,8 @@ class RNNModel(nn.Module):
 
         self.nonlinearity = nn.Tanh()
         self.eps = 1e-6
-        self.nsamples = 3
-        self.temp = 60
+        self.nsamples = nsamples
+        self.temp = temperature
         self.ntoken = ntoken
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
@@ -157,7 +157,7 @@ class RNNModel(nn.Module):
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
-            
+
             hidden = output[data[i]].view(1, 1, -1)
 
         return total_loss
