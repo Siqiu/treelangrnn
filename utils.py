@@ -33,7 +33,7 @@ def batchify_sorted(data, bsz, args, nsentences_of_length):
     '''
 
     new_data, offset = None, 0
-    for length, nsentences in nsentences_of_length:
+    for length, nsentences in nsentences_of_length.items():
 
         if nsentences < bsz:
             offset = offset + (nsentences*length)
