@@ -126,15 +126,17 @@ def sort_dataset(in_path, out_path):
     with open(in_path, 'r') as f:
         lines = [line.split() for line in f]
 
-    print([len(line) for line in lines])
-        
-    lines.sort(key=len)
-    lines = [' '.join(line) for line in lines]
-
-
-    with open(out_path, 'w') as f:
-        for line in lines:
+    for line in lines:
+        if len(line) == 1:
             print(line)
+        
+    #lines.sort(key=len)
+    #lines = [' '.join(line) for line in lines]
+
+
+    #with open(out_path, 'w') as f:
+    #    for line in lines:
+    #        print(line)
 
         
 
