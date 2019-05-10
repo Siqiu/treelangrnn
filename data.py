@@ -126,8 +126,8 @@ def sort_dataset(path):
     with open(path, 'r') as f:
 
         lines = [line.split() for line in f]
-        print(lines[1])
-        #print([len(line) for line in lines])
+        lines.sort(key=len)
+        print([len(line) for line in lines])
 
 
 
