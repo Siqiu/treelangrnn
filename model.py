@@ -136,7 +136,7 @@ class RNNModel(nn.Module):
         return total_loss
 
 
-    def evaluate(self, data):
+    def evaluate(self, data, eos_tokens):
 
         dist_fn = nn.PairwiseDistance(p=2)
 
@@ -151,7 +151,8 @@ class RNNModel(nn.Module):
 
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
-        for i in range(data.size(0)):
+        i = 0
+        while i < data.size(0):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
@@ -162,7 +163,12 @@ class RNNModel(nn.Module):
 
             total_loss += raw_loss / data.size(0)
 
-            hidden = output[data[i]].view(1, 1, -1)
+            if data[i].data.cpu().numpy()[0] in eos_tokens:
+                hidden = self.init_hidden(1)
+            else:
+                hidden = output[data[i]].view(1, 1, -1)
+
+            i = i + 1
 
         return total_loss
 

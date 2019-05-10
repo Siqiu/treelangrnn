@@ -143,7 +143,7 @@ print('Model total parameters:', total_params)
 def evaluate(data_source, batch_size=1):
     # Turn on evaluation mode which disables dropout.
     model.eval()
-    loss =  model.evaluate(data_source)
+    loss =  model.evaluate(data_source, eos_tokens)
     return loss
 
 
@@ -158,6 +158,10 @@ def train():
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
+        # prevent negative sequence lengths
+        seq_len = 0
+        while (i + seq_len < train.data.size(0)) and (not data[i+seq_len].data.cpu().numpy()[0] in eos_tokens): seq_len += 1
+        print(seq_len)
         # There's a very small chance that it could select a very long sequence length resulting in OOM
         # seq_len = min(seq_len, args.bptt + 10)
 
@@ -165,6 +169,7 @@ def train():
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
         model.train()
         data = get_batch(train_data, i, args, seq_len=seq_len)
+        print(data)
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
