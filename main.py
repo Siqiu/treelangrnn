@@ -62,6 +62,10 @@ parser.add_argument('--temperature', type=float, default=65.,
                     help='temperature in the exponent of the softmax.')
 parser.add_argument('--nsamples', type=int, default=10,
                     help='number of negative samples.')
+parser.add_argument('--uniform_freq', type=bool, default=False,
+                    help='use uniform frequencies for negative sampling')
+parser.add_argument('--sorted', type=bool, default=True,
+                    help='indicates whether data set is sorted by length of sentences')
 args = parser.parse_args()
 args.tied = True
 
@@ -95,7 +99,7 @@ if os.path.exists(fn):
     corpus = torch.load(fn)
 else:
     print('Producing dataset...')
-    corpus = data.Corpus(args.data)
+    corpus = data.Corpus(args.data, args.sorted)
     torch.save(corpus, fn)
 
 eval_batch_size = 1
@@ -105,9 +109,9 @@ val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
 
 # get token frequencies and eos_tokens
-frequencies = corpus.frequencies
+print(corpus.nsentences_of_length)
+if not args.uniform_freq: frequencies = corpus.frequencies
 eos_tokens = corpus.reset_idxs
-print(eos_tokens)
 
 ###############################################################################
 # Build the model

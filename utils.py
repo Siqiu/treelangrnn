@@ -21,12 +21,19 @@ def batchify(data, bsz, args):
         data = data.cuda()
     return data
 
+def batchify_sorted(data, bsz, args):
+    '''
+        this assumes that the dataset was sorted by length of the sentences
+        such that it can batch sentences of same length together
+    '''
+
+    pass
+
 
 def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
 
     if eos_tokens is None:
         seq_len = min(seq_len if seq_len else args.bptt, len(source) - 1 - i)
         data = source[i:i+1+seq_len]
-        target = source[i+1:i+1+seq_len].view(-1)
 
-    return data, target
+    return data
