@@ -165,12 +165,10 @@ class RNNModel(nn.Module):
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
-            print(softmaxed[data[i]])
 
             seq.append(data[i])
 
             if data[i].data.cpu().numpy()[0] in eos_tokens:
-                print(seq)
                 hidden = self.init_hidden(1)
                 seq = []
             else:
