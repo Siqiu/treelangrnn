@@ -161,7 +161,6 @@ def train():
         # prevent negative sequence lengths
         seq_len = 1
         while (i + seq_len < train_data.size(0)) and (not train_data[i+seq_len].data.cpu().numpy()[0] in eos_tokens): 
-            print(train_data[i+seq_len].data.cpu().numpy()[0])
             seq_len += 1
         print(seq_len)
         # There's a very small chance that it could select a very long sequence length resulting in OOM
@@ -208,7 +207,7 @@ def train():
             start_time = time.time()
         ###
         batch += 1
-        i += seq_len
+        i += seq_len + 1
 
 # Loop over epochs.
 lr = args.lr
