@@ -32,6 +32,7 @@ class RNNModel(nn.Module):
 
         self.nonlinearity = nn.Tanh()
         self.eps = 1e-6
+        print(nsamples)
         self.nsamples = nsamples
         self.temp = temperature
         self.ntoken = ntoken
