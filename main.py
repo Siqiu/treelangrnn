@@ -153,7 +153,7 @@ def train():
     start_time = time.time()
     ntokens = len(corpus.dictionary)
     batch, i = 0, 0
-    while i < train_data.size(0):
+    while i < train_data.size(0)-1:
 
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
