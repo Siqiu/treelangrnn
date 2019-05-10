@@ -120,7 +120,7 @@ eos_tokens = corpus.reset_idxs
 
 
 ntokens = len(corpus.dictionary)
-model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature, frequencies)
+model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature, frequencies, args.clip_dist)
 ###
 if args.resume:
     print('Resuming model ...')
