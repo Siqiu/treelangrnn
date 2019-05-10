@@ -170,6 +170,7 @@ class RNNModel(nn.Module):
             seq.append(data[i])
 
             if data[i].data.cpu().numpy()[0] in eos_tokens:
+                print(seq)
                 hidden = self.init_hidden(1)
                 seq = []
             else:
