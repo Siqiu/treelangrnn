@@ -40,6 +40,7 @@ def batchify_sorted(data, bsz, args, nsentences_of_length):
             continue
 
         bound = offset + (nsentences//bsz)*bsz*length
+        print(nsentences, length)
         print(bound)
         batchified = batchify(data[offset:bound], bsz, args, None)
         print(data[offset:offset + (nsentences*length)], batchified)
