@@ -125,9 +125,12 @@ def sort_dataset(in_path, out_path):
     # Add words to the dictionary
     with open(in_path, 'r') as f:
         lines = [line.split() for line in f]
+
+    print([len(line) for line in lines])
         
     lines.sort(key=len)
     lines = [' '.join(line) for line in lines]
+
 
     with open(out_path, 'w') as f:
         for line in lines:
