@@ -104,6 +104,8 @@ train_data = batchify(corpus.train, args.batch_size, args)
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
 
+# get token frequencies
+
 ###############################################################################
 # Build the model
 ###############################################################################
