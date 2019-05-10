@@ -40,6 +40,7 @@ def batchify_sorted(data, bsz, args, nsentences_of_length):
             continue
 
         bound = offset + (nsentences//bsz)*bsz*length
+        print(bound)
         batchified = batchify(data[offset:bound], bsz, args, None)
         print(data[offset:offset + (nsentences*length)], batchified)
         
@@ -49,7 +50,7 @@ def batchify_sorted(data, bsz, args, nsentences_of_length):
             new_data = torch.cat((new_data, batchified), 0)
 
         offset = offset + (nsentences*length)
-        
+
     return new_data
 
 def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
