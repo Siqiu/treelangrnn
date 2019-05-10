@@ -33,15 +33,14 @@ class Corpus(object):
         if is_sorted:
             self.nsentences_of_length = dict()
             self.train = self.tokenize_sorted(os.path.join(path, 'train.txt'))
-            self.valid = self.tokenize_sorted(os.path.join(path, 'valid.txt'))
-            self.test = self.tokenize_sorted(os.path.join(path, 'test.txt'))
         else:
-            self.train = self.tokenize(os.path.join(path, 'train.txt'))
-            self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
-            self.test = self.tokenize(os.path.join(path, 'test.txt'))
+            self.train = self.tokenize(os.path.join(path, 'train.txt'), True)
+        
+        self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
+        self.test = self.tokenize(os.path.join(path, 'test.txt'))
 
 
-    def tokenize(self, path):
+    def tokenize(self, path, first=True):
         """Tokenizes a text file."""
         assert os.path.exists(path)
         # Add words to the dictionary
@@ -54,9 +53,10 @@ class Corpus(object):
                     self.dictionary.add_word(word)
 
         # initialize frequencies
-        self.frequencies = torch.zeros(len(list(self.dictionary.counter)))
-        for (token_id, freq) in self.dictionary.counter.most_common():
-            self.frequencies[token_id] = freq
+        if first:
+            self.frequencies = torch.zeros(len(list(self.dictionary.counter)))
+            for (token_id, freq) in self.dictionary.counter.most_common():
+                self.frequencies[token_id] = freq
 
         # Tokenize file content
         with open(path, 'r') as f:
