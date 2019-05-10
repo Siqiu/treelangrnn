@@ -127,7 +127,7 @@ def sort_dataset(in_path, out_path):
         lines = [line.split() for line in f]
         
     lines.sort(key=len)
-    lines = [line.join(' ') for line in lines]
+    lines = [' '.join(line) for line in lines]
     print(lines)
 
     with open(out_path, 'w') as f:
