@@ -37,7 +37,8 @@ class RNNModel(nn.Module):
         self.ntoken = ntoken
         self.clip_dist = clip_dist
 
-        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken))# if frequencies is None else frequencies)
+        print(frequencies)
+        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
 
     def init_weights(self):
         initrange = 0.1

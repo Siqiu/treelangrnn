@@ -3,7 +3,6 @@ import torch
 
 from collections import Counter
 
-
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
@@ -26,6 +25,8 @@ class Dictionary(object):
 
 class Corpus(object):
     def __init__(self, path):
+        self.frequencies = None
+        self.resets, self.reset_idxs = ['<eos>'], set()
         self.dictionary = Dictionary()
         self.train = self.tokenize(os.path.join(path, 'train.txt'))
         self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
@@ -43,6 +44,11 @@ class Corpus(object):
                 for word in words:
                     self.dictionary.add_word(word)
 
+        # initialize frequencies
+        self.frequencies = torch.zeros(len(list(self.dictionary.counter)))
+        for (token_id, freq) in self.dictionary.counter.most_common():
+            self.frequencies[token_id] = freq
+
         # Tokenize file content
         with open(path, 'r') as f:
             ids = torch.LongTensor(tokens)
@@ -50,7 +56,13 @@ class Corpus(object):
             for line in f:
                 words = line.split() + ['<eos>']
                 for word in words:
+                    
+                    # store tokens which signal end of sentence
+                    if word in self.resets:
+                        self.reset_idxs.add(self.dictionary.word2idx[word])
+
                     ids[token] = self.dictionary.word2idx[word]
+
                     token += 1
 
         return ids

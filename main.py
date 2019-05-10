@@ -104,7 +104,9 @@ train_data = batchify(corpus.train, args.batch_size, args)
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
 
-# get token frequencies
+# get token frequencies and eos_tokens
+frequencies = corpus.frequencies
+eos_tokens = corpus.reset_idxs
 
 ###############################################################################
 # Build the model
