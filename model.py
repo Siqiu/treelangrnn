@@ -97,7 +97,7 @@ class RNNModel(nn.Module):
             # compute loss term
             distance = dist_fn(raw_output, output).pow(2)
             if self.clip_dist:
-                torch.clamp(distance, 0, self.clip_dist)
+                distance = torch.clamp(distance, 0, self.clip_dist)
                 print('clamping')
 
             sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
