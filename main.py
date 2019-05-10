@@ -107,6 +107,7 @@ test_data = batchify(corpus.test, test_batch_size, args)
 # get token frequencies and eos_tokens
 frequencies = corpus.frequencies
 eos_tokens = corpus.reset_idxs
+print(eos_tokens)
 
 ###############################################################################
 # Build the model
@@ -114,7 +115,7 @@ eos_tokens = corpus.reset_idxs
 
 
 ntokens = len(corpus.dictionary)
-model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature)
+model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature, frequencies)
 ###
 if args.resume:
     print('Resuming model ...')
