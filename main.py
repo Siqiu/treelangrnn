@@ -66,7 +66,7 @@ parser.add_argument('--uniform_freq', type=bool, default=False,
                     help='use uniform frequencies for negative sampling')
 parser.add_argument('--sorted', type=bool, default=True,
                     help='indicates whether data set is sorted by length of sentences')
-parser.add_argument('--clip_dist', type=float, default=0.1,
+parser.add_argument('--clip_dist', type=float, default=0.0,
                     help='clips the distances to prevent samples from being pushed too far away')
 args = parser.parse_args()
 args.tied = True
