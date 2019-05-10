@@ -85,7 +85,6 @@ class RNNModel(nn.Module):
         weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.weight_hh_l0, self.rnn.bias_hh_l0
 
-        print(self.nsamples, bsz*seq_len)
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
 
@@ -106,7 +105,7 @@ class RNNModel(nn.Module):
         return loss
 
 
-    def train_crossentropy(self, data):
+    def train_crossentropy(self, data, eos_tokens):
 
         dist_fn = nn.PairwiseDistance(p=2)
 
@@ -131,7 +130,10 @@ class RNNModel(nn.Module):
             raw_loss = -softmaxed[data[i]]
             total_loss += raw_loss / data.size(0)
 
-            hidden = output[data[i]].view(1, 1, -1)
+            if data[i].data.cpu().numpy()[0] in eos_tokens:
+                hidden = self.init_hidden(1)
+            else:
+                hidden = output[data[i]].view(1, 1, -1)
 
         return total_loss
 
@@ -152,6 +154,7 @@ class RNNModel(nn.Module):
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
         i = 0
+        seq = []
         while i < data.size(0):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
@@ -163,8 +166,12 @@ class RNNModel(nn.Module):
 
             total_loss += raw_loss / data.size(0)
 
+            seq.append(data[i])
+
             if data[i].data.cpu().numpy()[0] in eos_tokens:
                 hidden = self.init_hidden(1)
+                print(seq)
+                seq = []
             else:
                 hidden = output[data[i]].view(1, 1, -1)
 
