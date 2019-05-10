@@ -40,11 +40,14 @@ def batchify_sorted(data, bsz, args, nsentences_of_length):
             continue
 
         batchified = batchify(data[offset:offset + (nsentences*length)], bsz, args, None)
+        print(data[offset:offset + (nsentences*length)], batchified)
         
         if new_data is None:
             new_data = batchified
         else:
             new_data = torch.cat((new_data, batchified), 0)
+
+        offset = offsetr + (nsentences*length)
 
     print(new_data)
     return new_data
