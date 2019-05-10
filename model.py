@@ -165,6 +165,7 @@ class RNNModel(nn.Module):
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
+            print(torch.exp(softmaxed))
 
             seq.append(data[i])
 
