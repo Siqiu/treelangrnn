@@ -39,7 +39,8 @@ def batchify_sorted(data, bsz, args, nsentences_of_length):
             offset = offset + (nsentences*length)
             continue
 
-        batchified = batchify(data[offset:offset + (nsentences*length)], bsz, args, None)
+        bound = offset + (nsentences//bsz)*bsz*length
+        batchified = batchify(data[offset:offset + bound], bsz, args, None)
         print(data[offset:offset + (nsentences*length)], batchified)
         
         if new_data is None:
