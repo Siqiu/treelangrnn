@@ -117,3 +117,23 @@ class Corpus(object):
                     token += 1
 
         return ids
+
+
+def sort_dataset(path):
+
+    assert os.path.exists(path)
+    # Add words to the dictionary
+    with open(path, 'r') as f:
+
+        lines = [line for line in f]
+        print(lines)
+
+
+
+sort_dataset('data/penn/test.txt')
+
+
+
+
+
+
