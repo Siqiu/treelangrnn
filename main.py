@@ -60,7 +60,7 @@ parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
 parser.add_argument('--temperature', type=float, default=65.,
                     help='temperature in the exponent of the softmax.')
-parser.add_argument('--nsamples', type=int, default=10,
+parser.add_argument('--nsamples', type=int, default=100,
                     help='number of negative samples.')
 parser.add_argument('--uniform_freq', type=bool, default=False,
                     help='use uniform frequencies for negative sampling')
