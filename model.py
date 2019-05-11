@@ -169,11 +169,11 @@ class RNNModel(nn.Module):
 
             seq.append(data[i])
 
-            if data[i].data.cpu().numpy()[0] in eos_tokens:
-                hidden = self.init_hidden(1)
-                seq = []
-            else:
-                hidden = output[data[i]].view(1, 1, -1)
+            #if data[i].data.cpu().numpy()[0] in eos_tokens:
+            #    hidden = self.init_hidden(1)
+            #    seq = []
+            #else:
+            hidden = output[data[i]].view(1, 1, -1)
 
             i = i + 1
 

@@ -64,7 +64,7 @@ parser.add_argument('--nsamples', type=int, default=100,
                     help='number of negative samples.')
 parser.add_argument('--uniform_freq', type=bool, default=False,
                     help='use uniform frequencies for negative sampling')
-parser.add_argument('--sorted', type=bool, default=True,
+parser.add_argument('--sorted', type=bool, default=False,
                     help='indicates whether data set is sorted by length of sentences')
 parser.add_argument('--clip_dist', type=float, default=0.0,
                     help='clips the distances to prevent samples from being pushed too far away')
@@ -161,9 +161,9 @@ def train():
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
         # prevent negative sequence lengths
-        seq_len = 1
-        while (i + seq_len < train_data.size(0)) and (not train_data[i+seq_len].data.cpu().numpy()[0] in eos_tokens): 
-            seq_len += 1
+        #seq_len = 1
+        #while (i + seq_len < train_data.size(0)) and (not train_data[i+seq_len].data.cpu().numpy()[0] in eos_tokens): 
+        #    seq_len += 1
         # There's a very small chance that it could select a very long sequence length resulting in OOM
         # seq_len = min(seq_len, args.bptt + 10)
 
