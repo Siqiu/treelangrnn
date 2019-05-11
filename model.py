@@ -44,7 +44,7 @@ class RNNModel(nn.Module):
         initrange = 0.1
         self.encoder.weight.data.uniform_(-initrange, initrange)
 
-    def forward(self, data, return_output=False):
+    def forward(self, data, hidden, return_output=False):
 
         # need this later on
         dist_fn = nn.PairwiseDistance(p=2)
@@ -65,6 +65,7 @@ class RNNModel(nn.Module):
 
         # initialize loss w/ positive terms
         pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
+        new_hidden = raw_output[-1]
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
         # we want positive terms in the sum as well
@@ -103,7 +104,7 @@ class RNNModel(nn.Module):
 
         loss = loss + torch.log(sum_of_exp + self.eps).sum()
         
-        return loss
+        return loss, new_hidden
 
 
     def train_crossentropy(self, data, eos_tokens):

@@ -155,6 +155,7 @@ def train():
     start_time = time.time()
     ntokens = len(corpus.dictionary)
     batch, i = 0, 0
+    hidden = model.init_hidden(args.batch_size)
     while i < train_data.size(0)-1:
 
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
@@ -175,10 +176,11 @@ def train():
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
+        hidden = repackage_hidden(hidden)
         optimizer.zero_grad()
 
         #raw_loss = model.train_crossentropy(data, eos_tokens)
-        raw_loss = model(data)
+        raw_loss, hidden = model(data, hidden)
 
         loss = raw_loss
         '''
