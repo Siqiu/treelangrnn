@@ -161,7 +161,6 @@ def train():
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
-        print(seq_len)
         # prevent negative sequence lengths
         #seq_len = 1
         #while (i + seq_len < train_data.size(0)) and (not train_data[i+seq_len].data.cpu().numpy()[0] in eos_tokens): 
