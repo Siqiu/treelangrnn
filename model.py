@@ -7,6 +7,8 @@ from weight_drop import WeightDrop
 
 from sample import NegativeSampler
 
+from utils import repackage_hidden
+
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
@@ -175,6 +177,7 @@ class RNNModel(nn.Module):
             #    seq = []
             #else:
             hidden = output[data[i]].view(1, 1, -1)
+            hidden = repackage_hidden(hidden)
 
             i = i + 1
 
