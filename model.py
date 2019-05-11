@@ -168,7 +168,7 @@ class RNNModel(nn.Module):
             softmaxed = torch.nn.functional.log_softmax(-self.temp * distance, dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
-            total_loss += raw_loss.data / data.size(0)
+            total_loss += raw_loss / data.size(0)
 
             seq.append(data[i])
 
