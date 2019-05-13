@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 
 def dump(data, basepath=''):
 	savepath = basepath + '.out'
-	formatstr = ' '.join(['%1.4e']*len(data))
 	data = np.array(data).reshape((len(data), 1))
-	np.savetxt(savepath, data, delimiter=' ', fmt=formatstr)
+	np.savetxt(savepath, data)
 
 
 def dump_val_loss(val_loss, epochs, basepath=''):
