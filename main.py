@@ -27,13 +27,13 @@ parser.add_argument('--batch_size', type=int, default=80, metavar='N',
                     help='batch size')
 parser.add_argument('--bptt', type=int, default=70,
                     help='sequence length')
-parser.add_argument('--dropout', type=float, default=0.,
+parser.add_argument('--dropout', type=float, default=0.4,
                     help='dropout applied to layers (0 = no dropout)')
-parser.add_argument('--dropouth', type=float, default=0.,
+parser.add_argument('--dropouth', type=float, default=0.25,
                     help='dropout for rnn layers (0 = no dropout)')
-parser.add_argument('--dropouti', type=float, default=0.,
+parser.add_argument('--dropouti', type=float, default=0.4,
                     help='dropout for input embedding layers (0 = no dropout)')
-parser.add_argument('--dropoute', type=float, default=0.,
+parser.add_argument('--dropoute', type=float, default=0.4,
                     help='dropout to remove words from embedding layer (0 = no dropout)')
 parser.add_argument('--seed', type=int, default=1111,
                     help='random seed')
@@ -58,9 +58,9 @@ parser.add_argument('--optimizer', type=str,  default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
-parser.add_argument('--temperature', type=float, default=65.,
+parser.add_argument('--temperature', type=float, default=60.,
                     help='temperature in the exponent of the softmax.')
-parser.add_argument('--nsamples', type=int, default=100,
+parser.add_argument('--nsamples', type=int, default=20,
                     help='number of negative samples.')
 parser.add_argument('--uniform_freq', type=bool, default=False,
                     help='use uniform frequencies for negative sampling')
@@ -113,7 +113,7 @@ test_data = batchify(corpus.test, test_batch_size, args, corpus.nsentences_of_le
 # get token frequencies and eos_tokens
 if not args.uniform_freq: frequencies = corpus.frequencies
 eos_tokens = corpus.reset_idxs
-
+print(train_data.size(0))
 ###############################################################################
 # Build the model
 ###############################################################################
