@@ -60,13 +60,13 @@ parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
 parser.add_argument('--temperature', type=float, default=60.,
                     help='temperature in the exponent of the softmax.')
-parser.add_argument('--nsamples', type=int, default=20,
+parser.add_argument('--nsamples', type=int, default=10,
                     help='number of negative samples.')
 parser.add_argument('--uniform_freq', type=bool, default=False,
                     help='use uniform frequencies for negative sampling')
 parser.add_argument('--init_h', type=int, default=0,   # 0 means only initialize once
                     help='re-initialize the hidden state each ith minibatch (or each ith sentence if init_after_eos is true')
-parser.add_argument('--init_h_after_eos', type=bool, default=False,
+parser.add_argument('--init_h_after_eos', type=bool, default=True,
                     help='if true, the hidden states are set to zero after each eos token')
 parser.add_argument('--clip_dist', type=float, default=0.0,
                     help='clips the distances to prevent samples from being pushed too far away')
@@ -123,6 +123,8 @@ else:
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
 
+print(train_data)
+print(seq_lens)
 ###############################################################################
 # Build the model
 ###############################################################################
@@ -194,7 +196,7 @@ def train():
 
         loss = raw_loss
         '''
-        See what we can do here!
+        See what we can do here! We don't need the regularization as it is implicit!
 
         # Activiation Regularization
         if args.alpha: loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
