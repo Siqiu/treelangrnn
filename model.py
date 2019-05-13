@@ -66,7 +66,7 @@ class RNNModel(nn.Module):
         pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
         # more efficient formulation?
         #pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
-        new_hidden = raw_output[-1]
+        new_hidden = raw_output[-1].view(1, bsz, -1)
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
         # we want positive terms in the sum as well
