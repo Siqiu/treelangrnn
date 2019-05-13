@@ -54,9 +54,7 @@ class RNNModel(nn.Module):
         # get batch size and sequence length
         seq_len, bsz = data.size()
 
-        print(data.size())
         emb = embedded_dropout(self.encoder, data, dropout=self.dropoute if self.training else 0)
-        print(emb.size())
         emb = self.lockdrop(emb, self.dropouti)
 
         raw_output, new_hidden = self.rnn(emb, hidden)          # apply single layer rnn
@@ -83,9 +81,7 @@ class RNNModel(nn.Module):
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
 
-        print(samples.size())
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
-        print(samples_emb.size())
         samples_emb = self.lockdrop(samples_emb, self.dropouti)
 
         weights_ih, bias_ih = self.rnn.weight_ih_l0, self.rnn.bias_ih_l0  # only one layer for the moment
