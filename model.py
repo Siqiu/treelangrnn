@@ -55,6 +55,7 @@ class RNNModel(nn.Module):
         seq_len, bsz = data.size()
 
         emb = embedded_dropout(self.encoder, data, dropout=self.dropoute if self.training else 0)
+        print(emb.size())
         emb = self.lockdrop(emb, self.dropouti)
 
         raw_output, new_hidden = self.rnn(emb, hidden)          # apply single layer rnn
