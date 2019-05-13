@@ -71,6 +71,8 @@ parser.add_argument('--init_h_after_eos', type=bool, default=False,
                     help='if true, the hidden states are set to zero after each eos token')
 parser.add_argument('--clip_dist', type=float, default=0.0,
                     help='clips the distances to prevent samples from being pushed too far away')
+parser.add_argument('--val_out', type=str, default='val_loss.out')
+parser.add_argument('--entropy_out', type=str, default='entropy_')
 args = parser.parse_args()
 args.tied = True
 
@@ -151,10 +153,14 @@ def main(args):
     # Training code
     ###############################################################################
 
-    def evaluate(data_source, batch_size=1):
+    def evaluate(data_source, epoch, batch_size=1):
         # Turn on evaluation mode which disables dropout.
         model.eval()
-        loss =  model.evaluate(data_source, eos_tokens)
+        loss, entropy =  model.evaluate(data_source, eos_tokens)
+        
+        if not args.entropy_out is None:
+            dump(entropy, args.entropy_out + str(epoch) + '.out')
+
         return loss
 
 
@@ -311,8 +317,12 @@ def main(args):
 gridsearch = False
 if not gridsearch:
     valid_loss, test_loss = main(args)
-    dump(valid_loss, randomhash + '-loss.out')
+    if not: args.val_out is None:
+        dump(valid_loss, args.val_out)
 else:
+
+    args.val_out = None
+    args.entropy_out = None
 
     settings = [{'optimizer':'sgd', 'lr':1, 'dropout':True}, {'optimizer':'sgd', 'lr':5, 'dropout':True}, {'optimizer':'sgd', 'lr':10, 'dropout':True},
                 {'optimizer':'sgd', 'lr':1, 'dropout':False}, {'optimizer':'sgd', 'lr':5, 'dropout':False}, {'optimizer':'sgd', 'lr':10, 'dropout':False}]
