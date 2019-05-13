@@ -179,7 +179,7 @@ class RNNModel(nn.Module):
 
             i = i + 1
 
-        return total_loss, np.array(raw_loss)
+        return total_loss, np.array(entropy)
 
 
     def init_hidden(self, bsz):
