@@ -66,7 +66,7 @@ parser.add_argument('--uniform_freq', type=bool, default=False,
                     help='use uniform frequencies for negative sampling')
 parser.add_argument('--init_h', type=int, default=0,   # 0 means only initialize once
                     help='re-initialize the hidden state each ith minibatch (or each ith sentence if init_after_eos is true')
-parser.add_argument('--init_h_after_eos', type=bool, default=True,
+parser.add_argument('--init_h_after_eos', type=bool, default=False,
                     help='if true, the hidden states are set to zero after each eos token')
 parser.add_argument('--clip_dist', type=float, default=0.0,
                     help='clips the distances to prevent samples from being pushed too far away')
