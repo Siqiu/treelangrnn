@@ -75,7 +75,8 @@ class RNNModel(nn.Module):
             sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
         
         # init loss
-        loss = pos_sample_distances.mean()
+        mean_sample_distances = [d.mean() for d in pos_sample_distances]
+        loss = sum(mean_sample_distances) / len(mean_sample_distances)
            
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
