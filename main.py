@@ -302,7 +302,7 @@ def run(args):
     # Load the best saved model.
     model_load(args.save)
     for i in range(100):
-    print('Test')
+        print('Test')
 
     # Run on test data.
     test_loss = evaluate(test_data, args.epochs+1, test_batch_size)
@@ -323,6 +323,7 @@ def run(args):
 gridsearch = False
 if not gridsearch:
 '''
+print('Starting')
 valid_loss, test_loss = run(args)
 for i in range(100):
     print('Im here')
