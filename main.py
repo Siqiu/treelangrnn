@@ -76,7 +76,7 @@ parser.add_argument('--entropy_out', type=str, default='entropy_')
 args = parser.parse_args()
 args.tied = True
 
-def main(args):
+def run(args):
     # Set the random seed manually for reproducibility.
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -316,7 +316,7 @@ def main(args):
 '''
 gridsearch = False
 if not gridsearch:
-    valid_loss, test_loss = main(args)
+    valid_loss, test_loss = run(args)
     if not args.val_out is None:
         dump(valid_loss, args.val_out)
 else:
@@ -338,7 +338,7 @@ else:
             args.dropouti = 0.4
             args.dropoute = 0.4
 
-        valid_loss, test_loss = main(args)
+        valid_loss, test_loss = run(args)
         results.append((setting, valid_loss, test_loss))
 
     print(results)
