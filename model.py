@@ -49,7 +49,7 @@ class RNNModel(nn.Module):
     def forward(self, data, hidden, return_output=False):
 
         # need this later on
-        #dist_fn = nn.PairwiseDistance(p=2)
+        dist_fn = nn.PairwiseDistance(p=2)
 
         # get batch size and sequence length
         seq_len, bsz = data.size()
@@ -63,9 +63,9 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0).view((seq_len+1)*bsz, -1)
 
         # initialize loss w/ positive terms
-        #pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
+        pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
         # more efficient formulation?
-        pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
+        #pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
         new_hidden = raw_output[-1]
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
@@ -100,7 +100,7 @@ class RNNModel(nn.Module):
             if self.clip_dist:
                 distance = torch.clamp(distance, 0, self.clip_dist)
 
-            sum_of_exp = sum_of_exp + torch.exp(-distance)
+            sum_of_exp = sum_of_exp + torch.exp(-self.temp * distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).mean()
         
