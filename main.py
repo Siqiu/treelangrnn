@@ -253,7 +253,7 @@ def main(args):
                     tmp[prm] = prm.data.clone()
                     prm.data = optimizer.state[prm]['ax'].clone()
 
-                val_loss2 = evaluate(val_data)
+                val_loss2 = evaluate(val_data, epoch)
                 valid_loss.append(val_loss2)
                 print('-' * 89)
                 print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
@@ -270,7 +270,7 @@ def main(args):
                     prm.data = tmp[prm].clone()
 
             else:
-                val_loss = evaluate(val_data, eval_batch_size)
+                val_loss = evaluate(val_data, epoch, eval_batch_size)
                 valid_loss.append(valid_loss)
                 print('-' * 89)
                 print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
@@ -303,7 +303,7 @@ def main(args):
     model_load(args.save)
 
     # Run on test data.
-    test_loss = evaluate(test_data, test_batch_size)
+    test_loss = evaluate(test_data, args.epochs+1, test_batch_size)
     print('=' * 89)
     print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
         test_loss, math.exp(test_loss), test_loss / math.log(2)))

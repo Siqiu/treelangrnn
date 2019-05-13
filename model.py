@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 from embed_regularize import embedded_dropout
 from locked_dropout import LockedDropout
@@ -157,7 +158,7 @@ class RNNModel(nn.Module):
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
         i = 0
-        seq = []
+        entropy = []
         while i < data.size(0):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
@@ -168,6 +169,7 @@ class RNNModel(nn.Module):
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
+            entropy.append(raw_loss)
 
             if not eos_tokens is None and data[i].data.cpu().numpy()[0] in eos_tokens:
                 hidden = self.init_hidden(1)
@@ -177,7 +179,7 @@ class RNNModel(nn.Module):
 
             i = i + 1
 
-        return total_loss
+        return total_loss, np.array(raw_loss)
 
 
     def init_hidden(self, bsz):
