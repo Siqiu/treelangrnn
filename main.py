@@ -120,8 +120,8 @@ if args.init_h_after_eos:
 else:
     ntokens = len(corpus.dictionary)
     train_data = batchify(corpus.train, args.batch_size, args)
-val_data = batchify(corpus.valid, eval_batch_size, args, corpus.nsentences_of_length)
-test_data = batchify(corpus.test, test_batch_size, args, corpus.nsentences_of_length)
+val_data = batchify(corpus.valid, eval_batch_size, args)
+test_data = batchify(corpus.test, test_batch_size, args)
 
 ###############################################################################
 # Build the model
