@@ -60,7 +60,7 @@ class RNNModel(nn.Module):
         raw_output, new_hidden = self.rnn(emb, hidden)          # apply single layer rnn
         raw_output = self.lockdrop(raw_output, self.dropout)    # seq_len x bsz x nhid
         raw_output = raw_output.view(seq_len, bsz, -1)
-        raw_output = torch.cat((hidden, raw_output), 0).view((seq_len+1)*bsz, -1)
+        raw_output = torch.cat((hidden, raw_output), 0)#view((seq_len+1)*bsz, -1)
 
         # initialize loss w/ positive terms
         pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
