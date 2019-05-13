@@ -318,7 +318,7 @@ gridsearch = False
 if not gridsearch:
     valid_loss, test_loss = run(args)
     if not args.val_out is None:
-        dump(valid_loss, args.val_out)
+        pass#dump(valid_loss, args.val_out)
 else:
 
     args.val_out = None
