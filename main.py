@@ -103,7 +103,7 @@ if os.path.exists(fn):
     corpus = torch.load(fn)
 else:
     print('Producing dataset...')
-    corpus = data.Corpus(args.data, args.sorted)
+    corpus = data.Corpus(args.data)
     torch.save(corpus, fn)
 
 # get token frequencies and eos_tokens
