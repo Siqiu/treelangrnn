@@ -314,11 +314,18 @@ def run(args):
 '''
     ### MAIN ###
 '''
+'''
 gridsearch = False
 if not gridsearch:
-    valid_loss, test_loss = run(args)
+'''
+valid_loss, test_loss = run(args)
+for i in range(100):
+    print('Im here')
+
+'''
     if not args.val_out is None:
         dump(valid_loss, args.val_out)
+'''
 '''
 else:
 
