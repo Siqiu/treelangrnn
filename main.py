@@ -317,7 +317,7 @@ def main(args):
 gridsearch = False
 if not gridsearch:
     valid_loss, test_loss = main(args)
-    if not: args.val_out is None:
+    if not args.val_out is None:
         dump(valid_loss, args.val_out)
 else:
 
