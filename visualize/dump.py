@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 
 def dump(data, basepath=''):
 	savepath = basepath + '.out'
-	data = np.array(data).reshape((len(data), 1))
 	np.savetxt(savepath, data)
 
 
