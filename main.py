@@ -229,6 +229,7 @@ def run(args):
             ###
             batch += 1
             i += seq_len + 1
+            print(seq_len)
 
     # Loop over epochs.
     lr = args.lr
@@ -301,8 +302,6 @@ def run(args):
 
     # Load the best saved model.
     model_load(args.save)
-    for i in range(100):
-        print('Test')
 
     # Run on test data.
     test_loss = evaluate(test_data, args.epochs+1, test_batch_size)
@@ -310,9 +309,6 @@ def run(args):
     print('| End of training | test loss {:5.2f} | test ppl {:8.2f} | test bpc {:8.3f}'.format(
         test_loss, math.exp(test_loss), test_loss / math.log(2)))
     print('=' * 89)
-
-    for i in range(100):
-        print('Hello')
 
     return np.array(valid_loss), test_loss
 
@@ -325,8 +321,6 @@ if not gridsearch:
 '''
 print('Starting')
 valid_loss, test_loss = run(args)
-for i in range(100):
-    print('Im here')
 
 '''
     if not args.val_out is None:
