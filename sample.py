@@ -18,5 +18,5 @@ class NegativeSampler(nn.Module):
 		wrs = WeightedRandomSampler(self.frequencies, self.nsamples * bsz * seq_len)
 		samples = torch.LongTensor(list(wrs)).cuda() if cuda else torch.LongTensor(list(wrs))
 
-		return samples.view(samples.size(), 1)
+		return samples.view(-1, bsz)
 
