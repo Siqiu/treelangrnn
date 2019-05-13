@@ -229,7 +229,6 @@ def run(args):
             ###
             batch += 1
             i += seq_len + 1
-            print(seq_len)
 
     # Loop over epochs.
     lr = args.lr
@@ -272,7 +271,7 @@ def run(args):
 
             else:
                 val_loss = evaluate(val_data, epoch, eval_batch_size)
-                valid_loss.append(valid_loss)
+                valid_loss.append(val_loss)
                 print('-' * 89)
                 print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                     'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
