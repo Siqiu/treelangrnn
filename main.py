@@ -123,8 +123,6 @@ else:
 val_data = batchify(corpus.valid, eval_batch_size, args)
 test_data = batchify(corpus.test, test_batch_size, args)
 
-print(train_data)
-print(seq_lens)
 ###############################################################################
 # Build the model
 ###############################################################################
