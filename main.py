@@ -64,8 +64,10 @@ parser.add_argument('--nsamples', type=int, default=20,
                     help='number of negative samples.')
 parser.add_argument('--uniform_freq', type=bool, default=False,
                     help='use uniform frequencies for negative sampling')
-parser.add_argument('--sorted', type=bool, default=False,
-                    help='indicates whether data set is sorted by length of sentences')
+parser.add_argument('--init_h', type=int, default=0,   # 0 means only initialize once
+                    help='re-initialize the hidden state each ith minibatch (or each ith sentence if init_after_eos is true')
+parser.add_argument('--init_h_after_eos', type=bool, default=False,
+                    help='if true, the hidden states are set to zero after each eos token')
 parser.add_argument('--clip_dist', type=float, default=0.0,
                     help='clips the distances to prevent samples from being pushed too far away')
 args = parser.parse_args()
@@ -104,22 +106,27 @@ else:
     corpus = data.Corpus(args.data, args.sorted)
     torch.save(corpus, fn)
 
+# get token frequencies and eos_tokens
+frequencies, eos_tokens = None, None
+if not args.uniform_freq: frequencies = corpus.frequencies
+if args.init_h_after_eos: eos_tokens = corpus.reset_idxs
+
+# batchify
 eval_batch_size = 1
 test_batch_size = 1
-train_data = batchify(corpus.train, args.batch_size, args, corpus.nsentences_of_length)
+if args.init_h_after_eos:
+    ntokens = len(corpus.dictionary) + 1    # extra token for padding
+    train_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)
+else:
+    ntokens = len(corpus.dictionary)
+    train_data = batchify(corpus.train, args.batch_size, args)
 val_data = batchify(corpus.valid, eval_batch_size, args, corpus.nsentences_of_length)
 test_data = batchify(corpus.test, test_batch_size, args, corpus.nsentences_of_length)
 
-# get token frequencies and eos_tokens
-if not args.uniform_freq: frequencies = corpus.frequencies
-eos_tokens = corpus.reset_idxs
-print(train_data.size(0))
 ###############################################################################
 # Build the model
 ###############################################################################
 
-
-ntokens = len(corpus.dictionary)
 model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature, frequencies, args.clip_dist)
 ###
 if args.resume:
@@ -158,15 +165,15 @@ def train():
     hidden = model.init_hidden(args.batch_size)
     while i < train_data.size(0)-1:
 
-        bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
-        # Prevent excessively small or negative sequence lengths
-        seq_len = max(5, int(np.random.normal(bptt, 5)))
-        # prevent negative sequence lengths
-        #seq_len = 1
-        #while (i + seq_len < train_data.size(0)) and (not train_data[i+seq_len].data.cpu().numpy()[0] in eos_tokens): 
-        #    seq_len += 1
-        # There's a very small chance that it could select a very long sequence length resulting in OOM
-        # seq_len = min(seq_len, args.bptt + 10)
+        if args.init_h_after_eos:
+            seq_len = seq_lens[batch]
+        else:
+            bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
+            # Prevent excessively small or negative sequence lengths
+            seq_len = max(5, int(np.random.normal(bptt, 5)))
+            # prevent negative sequence lengths
+            # There's a very small chance that it could select a very long sequence length resulting in OOM
+            # seq_len = min(seq_len, args.bptt + 10)
 
         lr2 = optimizer.param_groups[0]['lr']
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
@@ -175,6 +182,10 @@ def train():
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
+        reset_hidden = args.init_h_after_eos or (args.init_h > 0 and batch % i == 0)
+        if reset_hidden:
+            hidden = model.init_hidden(args.batch_size)
+
         hidden = repackage_hidden(hidden)
         optimizer.zero_grad()
 

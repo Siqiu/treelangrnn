@@ -49,13 +49,10 @@ class RNNModel(nn.Module):
     def forward(self, data, hidden, return_output=False):
 
         # need this later on
-        dist_fn = nn.PairwiseDistance(p=2)
+        #dist_fn = nn.PairwiseDistance(p=2)
 
         # get batch size and sequence length
         seq_len, bsz = data.size()
-
-        # process positive samples
-        hidden = self.init_hidden(bsz)      # bsz x nhid
 
         emb = embedded_dropout(self.encoder, data, dropout=self.dropoute if self.training else 0)
         emb = self.lockdrop(emb, self.dropouti)
@@ -63,10 +60,12 @@ class RNNModel(nn.Module):
         raw_output, new_hidden = self.rnn(emb, hidden)          # apply single layer rnn
         raw_output = self.lockdrop(raw_output, self.dropout)    # seq_len x bsz x nhid
         raw_output = raw_output.view(seq_len, bsz, -1)
-        raw_output = torch.cat((hidden, raw_output), 0)
+        raw_output = torch.cat((hidden, raw_output), 0).view((seq_len+1)*bsz, -1)
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
+        #pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
+        # more efficient formulation?
+        pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
         new_hidden = raw_output[-1]
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
@@ -76,8 +75,7 @@ class RNNModel(nn.Module):
             sum_of_exp[i*bsz:(i+1)*bsz] = torch.exp(-pos_sample_distances[i])
         
         # init loss
-        loss = sum(pos_sample_distances).sum() / len(pos_sample_distances)
-        #loss = 0
+        loss = pos_sample_distances.mean()
            
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
@@ -102,9 +100,9 @@ class RNNModel(nn.Module):
             if self.clip_dist:
                 distance = torch.clamp(distance, 0, self.clip_dist)
 
-            sum_of_exp = sum_of_exp + torch.exp(-distance) / len(distance)
+            sum_of_exp = sum_of_exp + torch.exp(-distance)
 
-        loss = loss + torch.log(sum_of_exp + self.eps).sum()
+        loss = loss + torch.log(sum_of_exp + self.eps).mean()
         
         return loss, new_hidden
 
@@ -134,7 +132,7 @@ class RNNModel(nn.Module):
             raw_loss = -softmaxed[data[i]]
             total_loss += raw_loss / data.size(0)
 
-            if data[i].data.cpu().numpy()[0] in eos_tokens:
+            if not eos_tokens is None and data[i].data.cpu().numpy()[0] in eos_tokens:
                 hidden = self.init_hidden(1)
             else:
                 hidden = output[data[i]].view(1, 1, -1)
@@ -142,7 +140,7 @@ class RNNModel(nn.Module):
         return total_loss
 
 
-    def evaluate(self, data, eos_tokens):
+    def evaluate(self, data, eos_tokens=None):
 
         dist_fn = nn.PairwiseDistance(p=2)
 
@@ -170,13 +168,10 @@ class RNNModel(nn.Module):
 
             total_loss += raw_loss / data.size(0)
 
-            seq.append(data[i])
-
-            #if data[i].data.cpu().numpy()[0] in eos_tokens:
-            #    hidden = self.init_hidden(1)
-            #    seq = []
-            #else:
-            hidden = output[data[i]].view(1, 1, -1)
+            if not eos_tokens is None and data[i].data.cpu().numpy()[0] in eos_tokens:
+                hidden = self.init_hidden(1)
+            else:
+                hidden = output[data[i]].view(1, 1, -1)
             hidden = repackage_hidden(hidden)
 
             i = i + 1

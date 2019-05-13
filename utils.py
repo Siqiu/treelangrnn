@@ -10,11 +10,7 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
-def batchify(data, bsz, args, nsentences_of_length=None):
-
-    # if the data is sorted by length we do a sorted batchify
-    if not nsentences_of_length is None:
-        return batchify_sorted(data, bsz, args, nsentences_of_length)
+def batchify(data, bsz, args):
 
     # Work out how cleanly we can divide the dataset into bsz parts.
     nbatch = data.size(0) // bsz
@@ -26,30 +22,34 @@ def batchify(data, bsz, args, nsentences_of_length=None):
         data = data.cuda()
     return data
 
-def batchify_sorted(data, bsz, args, nsentences_of_length):
-    '''
-        this assumes that the dataset was sorted by length of the sentences
-        such that it can batch sentences of same length together
-    '''
+def batchify_padded(data, bsz, args, ntokens, eos_tokens):
 
-    new_data, offset = None, 0
-    for length, nsentences in nsentences_of_length.items():
+    i, batches, seq_lens = 0, [], []
+    while i < data.size(0):
 
-        if nsentences < bsz:
-            offset = offset + (nsentences*length)
-            continue
+        # get the sentences
+        j, sentences = i, [i]
+        while j < data.size(0) and len(sentences) < bsz+1:
+            if data[j].data.cpu().numpy()[0] in eos_tokens:
+                sentences.append(j+1)
+            j += 1
 
-        bound = offset + (nsentences//bsz)*bsz*length
-        batchified = batchify(data[offset:bound], bsz, args, None)
-        
-        if new_data is None:
-            new_data = batchified
-        else:
-            new_data = torch.cat((new_data, batchified), 0)
+        i = j + 1
 
-        offset = offset + (nsentences*length)
+        # find longest sentence
+        lengths = [sentences[j+1] - sentences[j] for j in range(len(sentences)-1)]
+        longest = max(lengths)
+        seq_lens.append(longest)
 
-    return new_data
+        # initialize empty container
+        batch = torch.ones(longest, bsz) * ntokens
+        for j in range(len(sentences)-1):
+            batch[0:lengths[j]][j] = data[sentences[j]:sentences[j+1]]
+
+        batches.append(batch)
+
+    return torch.cat(batches, 0), seq_lens
+
 
 def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
 
