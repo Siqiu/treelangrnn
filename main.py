@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 import data
-import model
+from model import RNNModel
 
 from visualize.dump import dump
 from utils import batchify, batchify_padded, get_batch, repackage_hidden
@@ -131,7 +131,7 @@ def main(args):
     # Build the model
     ###############################################################################
 
-    model = model.RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature, frequencies, args.clip_dist)
+    model = RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature, frequencies, args.clip_dist)
     ###
     if args.resume:
         print('Resuming model ...')
