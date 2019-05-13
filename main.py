@@ -59,7 +59,7 @@ parser.add_argument('--optimizer', type=str,  default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
-parser.add_argument('--temperature', type=float, default=60.,
+parser.add_argument('--temperature', type=float, default=1.,
                     help='temperature in the exponent of the softmax.')
 parser.add_argument('--nsamples', type=int, default=10,
                     help='number of negative samples.')
