@@ -42,7 +42,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
         seq_lens.append(longest)
 
         # initialize empty container
-        batch = torch.ones(bsz, longest) * ntokens
+        batch = (torch.ones(bsz, longest) * ntokens).type(torch.LongTensor)
         print(batch)
         for j in range(len(sentences)-1):
             print(lengths[j])
