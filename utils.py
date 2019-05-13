@@ -43,6 +43,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
 
         # initialize empty container
         batch = torch.ones(longest, bsz) * ntokens
+        print(batch)
         for j in range(len(sentences)-1):
             print(lengths[j])
             print(sentences[j:j+2])
