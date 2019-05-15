@@ -1,0 +1,10 @@
+a fundamental understanding of how various biological traits and features provide organisms with a competitive advantage can help us improve the design of a number of mechanical systems
+numerical optimization can play an invaluable role for this purpose by allowing us to scrutinize the evolution of specific biological adaptations in nature
+importantly the use of numerical optimization can help us overcome limiting constraints that restrict the evolutionary capability of biological species
+we capitalize on these advantages by coupling high-fidelity simulations of self-propelled swimmers with evolutionary optimization algorithms to examine peculiar swimming patterns observed in a number of fish species
+more specifically we investigate the intermittent form of locomotion referred to as burst-and-coast swimming which involves a few quick flicks of the fish 's tail followed by a prolonged unpowered glide
+this mode of swimming is believed to confer energetic benefits in addition to several other advantages
+we discover a range of intermittent swimming patterns the most efficient of which resembles the swimming behaviour observed in live fish
+we also discover patterns which lead to a marked increase in swimming-speed albeit with a significant increase in energy expenditure
+notably the use of multi-objective optimization reveals locomotion patterns that strike the perfect balance between speed and efficiency which can be invaluable for use in robotic applications
+as an additional goal of the paper we highlight the ease with which disparate codes can be coupled via the software framework used without encumbering the user with the details of efficient parallelization and machine learning based task-scheduling

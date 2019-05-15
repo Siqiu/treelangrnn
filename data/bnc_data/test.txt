@@ -1,0 +1,9 @@
+we have coupled task-parallel multi-objective optimization algorithms with high-fidelity simulations of self-propelled swimmers to discover efficient intermittent locomotion modes in self-propelled swimmers
+this approach has allowed us to discover a diverse range of motion patterns each of which are optimal in their own right but give rise to very different locomotion characteristics
+the most efficient swimmers discovered by the optimization algorithms display prolonged coasting behaviour which allows them to conserve energy
+the fastest swimmers were able to generate large forward thrust by rapidly accelerating packets of fluid opposite to their direction of motion
+intriguingly the fast larva and the fast adult adopt markedly differently burst-coast behaviour which may be ascribed to the increased viscous drag experienced by the larva during coasting
+this indicates that the optimization algorithms are capable of correctly accounting for expected differences in the physics of the problem
+the primary advantage of using such computational tools lies in the fact that it can lead to the discovery of patterns which may not generally occur in nature but can be invaluable for use in robotic applications
+optimal swimming gaits can be selected specifically to suit particular mission-requirements e.g. to maximize energy conservation minimize travel time or utilize an optimal combination of both
+the resulting increase in range endurance and average speed can greatly enhance the mission capability of robotic swimmers
