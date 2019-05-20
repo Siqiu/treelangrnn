@@ -22,4 +22,4 @@ def dot_distance(x, y, bias=None):
 	if x.size(0) > 1:
 		return torch.diag(-sim_fn(x, y, bias=bias))
 	else:
-       	return -sim_fn(x, y, bias=bias)
+		return -sim_fn(x, y, bias=bias)
