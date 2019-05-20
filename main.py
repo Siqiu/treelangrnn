@@ -251,8 +251,10 @@ def run(args):
             if 't0' in optimizer.param_groups[0]:
                 tmp = {}
                 for prm in model.parameters():
+                    #if 'ax' in optimizer.state[prm]:
                     tmp[prm] = prm.data.clone()
-                    prm.data = optimizer.state[prm]['ax'].clone()
+                    if 'ax' in optimizer.state[prm]:
+                        prm.data = optimizer.state[prm]['ax'].clone()
 
                 val_loss2 = evaluate(val_data, epoch)
                 valid_loss.append(val_loss2)

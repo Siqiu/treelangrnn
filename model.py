@@ -26,8 +26,12 @@ class RNNModel(nn.Module):
         self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=wdrop)
         print(self.rnn)
 
-
-        self.bias = nn.Parameter(torch.randn(ntoken)).cuda() if bias else None
+        if bias:
+            self.decoder = nn.Linear(nhid, ntoken)
+            self.bias = self.decoder.bias
+        else:
+            self.bias = None
+        #self.bias = nn.Parameter(torch.randn(ntoken), requires_grad=True).cuda() if bias else None
 
         self.init_weights(bias)
 
@@ -58,8 +62,6 @@ class RNNModel(nn.Module):
         #if bias: torch.nn.init.uniform_(self.bias, -initrange, initrange)
 
     def forward(self, data, hidden, return_output=False):
-
-        print(self.bias)
 
         # get batch size and sequence length
         seq_len, bsz = data.size()
@@ -117,6 +119,7 @@ class RNNModel(nn.Module):
             sum_of_exp = sum_of_exp + torch.exp(-self.temp * distance)
 
         loss = loss + torch.log(sum_of_exp + self.eps).mean()
+        if self.regularize_bias: loss = loss + (0 if self.bias is None else torch.norm(self.bias).pow(2))
         return loss, new_hidden
 
 
