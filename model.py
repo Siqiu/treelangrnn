@@ -14,7 +14,7 @@ from distance import eucl_distance
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5, nsamples=10, temperature=65, frequencies=None, clip_dist=0.0):
+    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5, nsamples=10, temperature=65, frequencies=None, clip_dist=0.0, bias=True):
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
@@ -26,7 +26,10 @@ class RNNModel(nn.Module):
         self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=wdrop)
         print(self.rnn)
 
-        self.init_weights()
+
+        self.bias = torch.empty(nsamples, requires_grad=True) if bias else None
+
+        self.init_weights(bias)
 
         self.ninp = ninp
         self.nhid = nhid
@@ -44,14 +47,15 @@ class RNNModel(nn.Module):
         self.clip_dist = clip_dist
 
         self.dist_fn = eucl_distance
-        self.bias = None
+        
 
         print(frequencies)
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
 
-    def init_weights(self):
+    def init_weights(self, bias):
         initrange = 0.1
         self.encoder.weight.data.uniform_(-initrange, initrange)
+        if bias: torch.nn.init.uniform_(self.bias, -initrange, initrange)
 
     def forward(self, data, hidden, return_output=False):
 
