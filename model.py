@@ -121,6 +121,8 @@ class RNNModel(nn.Module):
         loss = loss + torch.log(sum_of_exp + self.eps).mean()
         if self.bias_reg > 0: loss = loss + (0 if self.bias is None else self.bias_reg * torch.norm(self.bias).pow(2))
 
+        print(self.bias.mean())
+        
         return loss, new_hidden
 
 
