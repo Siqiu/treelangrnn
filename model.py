@@ -27,7 +27,7 @@ class RNNModel(nn.Module):
         print(self.rnn)
 
 
-        self.bias = torch.empty(ntoken, requires_grad=True).cuda() if bias else None
+        self.bias = nn.Parameter(torch.randn(ntoken)).cuda() if bias else None
 
         self.init_weights(bias)
 
@@ -55,7 +55,7 @@ class RNNModel(nn.Module):
     def init_weights(self, bias):
         initrange = 0.1
         self.encoder.weight.data.uniform_(-initrange, initrange)
-        if bias: torch.nn.init.uniform_(self.bias, -initrange, initrange)
+        #if bias: torch.nn.init.uniform_(self.bias, -initrange, initrange)
 
     def forward(self, data, hidden, return_output=False):
 
