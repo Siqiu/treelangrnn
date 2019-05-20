@@ -59,6 +59,8 @@ class RNNModel(nn.Module):
 
     def forward(self, data, hidden, return_output=False):
 
+        print(self.bias)
+
         # get batch size and sequence length
         seq_len, bsz = data.size()
 
@@ -71,10 +73,6 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)#view((seq_len+1)*bsz, -1)
 
         # initialize loss w/ positive terms
-        for i in range(seq_len):
-            print(raw_output[i].size())
-            print(raw_output[i+1].size())
-            print(self.bias[data[i]].size())
         pos_sample_distances = [self.temp * self.dist_fn(raw_output[i], raw_output[i+1], self.bias[data[i]] if not self.bias is None else None) for i in range(seq_len)]
         # more efficient formulation?
         #pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
