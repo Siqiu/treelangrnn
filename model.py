@@ -72,9 +72,9 @@ class RNNModel(nn.Module):
 
         # initialize loss w/ positive terms
         for i in range(seq_len):
-            print(raw_output[i])
-            print(raw_output[i+1])
-            print(self.bias[data[i]])
+            print(raw_output[i].size())
+            print(raw_output[i+1].size())
+            print(self.bias[data[i]].size())
         pos_sample_distances = [self.temp * self.dist_fn(raw_output[i], raw_output[i+1], self.bias[data[i]] if not self.bias is None else None) for i in range(seq_len)]
         # more efficient formulation?
         #pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
