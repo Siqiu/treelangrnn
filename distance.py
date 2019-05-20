@@ -13,7 +13,7 @@ def eucl_distance(x, y, bias=None):
 		return dist_fn(x, y).pow(2) + bias
 
 
-def eucl_distance(x, y, bias=None):
+def dot_distance(x, y, bias=None):
 	'''
 		takes x of shape 1 x d or n x d and y of shape n x d and computes
 		the dot product of x with y. 

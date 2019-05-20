@@ -9,7 +9,7 @@ from weight_drop import WeightDrop
 from sample import NegativeSampler
 
 from utils import repackage_hidden
-from distance import eucl_distance
+from distance import eucl_distance, dot_distance
 
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
@@ -53,6 +53,7 @@ class RNNModel(nn.Module):
         self.clip_dist = clip_dist
 
         self.dist_fn = eucl_distance
+        self.dist_fn = dot_distance
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
 
