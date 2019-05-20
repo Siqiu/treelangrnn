@@ -27,7 +27,7 @@ class RNNModel(nn.Module):
         print(self.rnn)
 
 
-        self.bias = torch.empty(nsamples, requires_grad=True) if bias else None
+        self.bias = torch.empty(nsamples, requires_grad=True).cuda() if bias else None
 
         self.init_weights(bias)
 
