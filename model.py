@@ -71,6 +71,10 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)#view((seq_len+1)*bsz, -1)
 
         # initialize loss w/ positive terms
+        for i in range(seq_len):
+            print(raw_output[i])
+            print(raw_output[i+1])
+            print(self.bias[data[i]])
         pos_sample_distances = [self.temp * self.dist_fn(raw_output[i], raw_output[i+1], self.bias[data[i]] if not self.bias is None else None) for i in range(seq_len)]
         # more efficient formulation?
         #pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
