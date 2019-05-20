@@ -36,6 +36,7 @@ parser.add_argument('--dropouti', type=float, default=0.,
                     help='dropout for input embedding layers (0 = no dropout)')
 parser.add_argument('--dropoute', type=float, default=0.,
                     help='dropout to remove words from embedding layer (0 = no dropout)')
+parser.add_argument('--wdrop', type=float, default=0.)
 parser.add_argument('--seed', type=int, default=1111,
                     help='random seed')
 parser.add_argument('--nonmono', type=int, default=5,
@@ -47,9 +48,9 @@ parser.add_argument('--log-interval', type=int, default=200, metavar='N',
 randomhash = ''.join(str(time.time()).split('.'))
 parser.add_argument('--save', type=str,  default=randomhash+'.pt',
                     help='path to save the final model')
-parser.add_argument('--alpha', type=float, default=2,
+parser.add_argument('--alpha', type=float, default=0,
                     help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')
-parser.add_argument('--beta', type=float, default=1,
+parser.add_argument('--beta', type=float, default=0,
                     help='beta slowness regularization applied on RNN activiation (beta = 0 means no regularization)')
 parser.add_argument('--wdecay', type=float, default=1.2e-6,
                     help='weight decay applied to all weights')
@@ -59,17 +60,17 @@ parser.add_argument('--optimizer', type=str,  default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
-parser.add_argument('--temperature', type=float, default=1.,
+parser.add_argument('--temperature', type=float, default=1,
                     help='temperature in the exponent of the softmax.')
 parser.add_argument('--nsamples', type=int, default=10,
                     help='number of negative samples.')
-parser.add_argument('--uniform_freq', type=bool, default=False,
+parser.add_argument('--uniform_freq', type=bool, default=True,
                     help='use uniform frequencies for negative sampling')
 parser.add_argument('--init_h', type=int, default=0,   # 0 means only initialize once
                     help='re-initialize the hidden state each ith minibatch (or each ith sentence if init_after_eos is true')
 parser.add_argument('--init_h_after_eos', type=bool, default=False,
                     help='if true, the hidden states are set to zero after each eos token')
-parser.add_argument('--clip_dist', type=float, default=0.0,
+parser.add_argument('--clip_dist', type=float, default=0.,
                     help='clips the distances to prevent samples from being pushed too far away')
 parser.add_argument('--val_out', type=str, default='val_loss')
 parser.add_argument('--entropy_out', type=str, default='entropy_')
@@ -131,7 +132,7 @@ def run(args):
     # Build the model
     ###############################################################################
 
-    model = RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.nsamples, args.temperature, frequencies, args.clip_dist)
+    model = RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.nsamples, args.temperature, frequencies, args.clip_dist)
     ###
     if args.resume:
         print('Resuming model ...')
@@ -314,39 +315,25 @@ def run(args):
 '''
     ### MAIN ###
 '''
-'''
+
 gridsearch = False
 if not gridsearch:
-'''
-print('Starting')
-valid_loss, test_loss = run(args)
-
-'''
-    if not args.val_out is None:
-        dump(valid_loss, args.val_out)
-'''
-'''
+    valid_loss, test_loss = run(args)
+    dump(valid_loss, 'val_loss.out')
 else:
-
     args.val_out = None
     args.entropy_out = None
-
-    settings = [{'optimizer':'sgd', 'lr':1, 'dropout':True}, {'optimizer':'sgd', 'lr':5, 'dropout':True}, {'optimizer':'sgd', 'lr':10, 'dropout':True},
-                {'optimizer':'sgd', 'lr':1, 'dropout':False}, {'optimizer':'sgd', 'lr':5, 'dropout':False}, {'optimizer':'sgd', 'lr':10, 'dropout':False}]
-
+    
+    lrs = [0.25, 0.5, 1, 2, 4, 8]
+    temps = [0.001, 0.01, 0.1, 1, 5, 10, 50]
     results = []
-    for setting in settings:
+    for lr in lrs:
+        args.lr = lr
+        for temp in temps:
+            args.temperature = temp
 
-        args.optimizer = setting['optimizer']
-        args.lr = setting['lr']
-        if setting['dropout']:
-            args.dropout = 0.4
-            args.dropouth = 0.25
-            args.dropouti = 0.4
-            args.dropoute = 0.4
-
-        valid_loss, test_loss = run(args)
-        results.append((setting, valid_loss, test_loss))
-
-    print(results)
-'''
+            valid_loss, test_loss = run(args)
+            results.append((lr, temp, valid_loss, np.amin(valid_loss)))
+            
+    for result in results:
+        print(result)
