@@ -142,7 +142,7 @@ class RNNModel(nn.Module):
         return total_loss
 
 
-    def evaluate(self, data, eos_tokens=None):
+    def evaluate(self, data, eos_tokens=None, dump_contexts=False):
 
         dist_fn = nn.PairwiseDistance(p=2)
 
@@ -158,11 +158,13 @@ class RNNModel(nn.Module):
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
         i = 0
-        entropy = []
+        entropy, contexts, all_contexts = [], [], []
         while i < data.size(0):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
+
+            if dump_contexts: contexts.append(output[data[i]])
 
             distance = dist_fn(hidden[0], output).pow(2)
             softmaxed = torch.nn.functional.log_softmax(-self.temp * distance, dim=0)
@@ -173,12 +175,16 @@ class RNNModel(nn.Module):
 
             if not eos_tokens is None and data[i].data.cpu().numpy()[0] in eos_tokens:
                 hidden = self.init_hidden(1)
+                if dump_contexts:
+                    all_contexts.append(contexts)
+                    contexts = []
             else:
                 hidden = output[data[i]].view(1, 1, -1)
             hidden = repackage_hidden(hidden)
 
             i = i + 1
 
+        all_contexts = all_contexts if not eos_tokens is None else contexts
         return total_loss, np.array(entropy)
 
 

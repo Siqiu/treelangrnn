@@ -143,40 +143,35 @@ class EntropyDistance2D:
 
 class EntropyHistogram:
 
-	def __init__(self, base, optimizer, learning_rate, regularizer, epochs):
+	def __init__(self, base, epochs):
 
 		self.epochs = epochs
 
-		self.distance_base = base + optimizer + '-' + str(learning_rate) + '-' + str(regularizer) + '-distance-'
-		self.entropy_base = base + optimizer + '-' + str(learning_rate) + '-' + str(regularizer) + '-entropy-'
-
-		self.distance = dict()
-		for epoch in epochs:
-			self.distance[epoch] = np.loadtxt(self.distance_base + str(epoch) + '.out')
+		self.entropie_paths = [base + 'entropy_' + str(epoch) + '.out' for epoch in epochs]
 		self.entropy = dict()
-		for epoch in epochs:
-			self.entropy[epoch] = np.loadtxt(self.entropy_base + str(epoch) + '.out')
+		for epoch, path in zip(epochs, self.entropie_paths):
+			self.entropy[epoch] = np.loadtxt(path)
 
-		self.valid_path = base + optimizer + '-' + str(learning_rate) + '-' + str(regularizer) + '-valid.out'
-		self.valid = np.loadtxt(self.valid_path)
+		self.valid_path = base + 'val_loss.out.out'
+		#self.valid = np.loadtxt(self.valid_path)
+		#print(self.valid.shape)
 
-		self.title = '(opt=' + optimizer + ', lr=' + str(learning_rate) + ', reg=' + str(regularizer > 0) + ')'
+		self.title = 'Histogram of Entropy by Epoch'
 
 
-	def make_histogram(self, dleft, dright, eleft, eright, nbins, ylow=0, ytop=25000):
+	def make_histogram(self, eleft, eright, nbins, ylow=0, ytop=25000):
 
-		nrows = len(self.epochs)
-		ncols = 2
-
-		dbins = np.linspace(dleft, dright, nbins)
+		nrows = 1
+		ncols = len(self.epochs)
 		ebins = np.linspace(eleft, eright, nbins)
 
-		self.fig = plt.figure(figsize=(14, 14))
+		self.fig = plt.figure(figsize=(16, 4))
 		self.fig.suptitle(self.title, fontsize=14)
 
 		for i, epoch in enumerate(self.epochs):
 
 			# plot distance histo
+			'''
 			ax = self.fig.add_subplot(nrows, ncols, 2*i + 1)
 			ax.set_ylim([ylow, ytop])
 
@@ -189,19 +184,21 @@ class EntropyHistogram:
 			ax.legend(loc='upper left')
 			ax.set_xlabel('exp(-d(c,c+)+b)')
 			ax.set_ylabel('count')
+			'''
 
 			# plot entropy histo
-			ax = self.fig.add_subplot(nrows, ncols, 2*i + 2)
+
+			ax = self.fig.add_subplot(nrows, ncols, i+1)
 			ax.set_ylim([ylow, ytop])
 
-			if i == 0: ax = self._make_col_title(ax, 'Entropy')
+			#ax = self._make_col_title(ax, epoch)
 
 			ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
 			ax.hist(self.entropy[epoch], ebins, edgecolor='black', color='white')
-			ax.axvline(self.valid[i], color='r', linestyle='dashed', label='avrg. entropy')
+			ax.axvline(np.mean(self.entropy[epoch]), color='r', linestyle='dashed', label='avrg. entropy')
 			ax.legend(loc='upper right')
-			ax.set_xlabel('softmax(exp(-d(c,c+)+b)')
-			ax.set_ylabel('count')
+			ax.set_xlabel('Entropy (Epoch: ' + str(epoch) + ')')
+			if i == 0: ax.set_ylabel('Counts')
 
 	def save(self, path):
 		self.fig.savefig(path)
@@ -220,10 +217,10 @@ class EntropyHistogram:
 		return ax
 
 
-eh = EntropyHistogram('../results/lstm_results/', 'adam', .0001, 0.4, [5, 10, 15, 20])
-eh.make_histogram(-25, 25, 0, 25, 50)
-eh.save(eh.title + '.png')
-
+eh = EntropyHistogram('./', [1, 2, 4, 6])
+eh.make_histogram(0, 20, 50)
+plt.show()
+#eh.save('../../results/penn_100_uniform/'+eh.title + '.png')
 #ed2d = EntropyDistance2D('../results/lstm_results/', 'adam', .0001, 0.4, [5, 10, 15, 20])
 #ed2d.make_heatmap(-25, 25, 0, 30, 100)
 #ed2d.save('similarity-entropy-scatter.png')
