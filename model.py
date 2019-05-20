@@ -9,6 +9,7 @@ from weight_drop import WeightDrop
 from sample import NegativeSampler
 
 from utils import repackage_hidden
+from distance import eucl_distance
 
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
@@ -42,6 +43,9 @@ class RNNModel(nn.Module):
         self.ntoken = ntoken
         self.clip_dist = clip_dist
 
+        self.dist_fn = eucl_distance
+        self.bias = None
+
         print(frequencies)
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
 
@@ -50,9 +54,6 @@ class RNNModel(nn.Module):
         self.encoder.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, data, hidden, return_output=False):
-
-        # need this later on
-        dist_fn = nn.PairwiseDistance(p=2)
 
         # get batch size and sequence length
         seq_len, bsz = data.size()
@@ -66,7 +67,7 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)#view((seq_len+1)*bsz, -1)
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [self.temp * dist_fn(raw_output[i], raw_output[i+1]).pow(2) for i in range(seq_len)]
+        pos_sample_distances = [self.temp * self.dist_fn(raw_output[i], raw_output[i+1], self.bias[data[i]] if not self.bias is None else None) for i in range(seq_len)]
         # more efficient formulation?
         #pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
         new_hidden = raw_output[-1].view(1, bsz, -1)
@@ -90,6 +91,7 @@ class RNNModel(nn.Module):
         weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
 
+        samples = samples.view(self.nsamples, bsz*seq_len)
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
 
@@ -102,7 +104,7 @@ class RNNModel(nn.Module):
             output = output[0]
 
             # compute loss term
-            distance = dist_fn(raw_output, output).pow(2)
+            distance = self.dist_fn(raw_output, output, self.bias[samples[i]] if not self.bias is None else None)
             if self.clip_dist:
                 distance = torch.clamp(distance, 0, self.clip_dist)
 
@@ -147,8 +149,6 @@ class RNNModel(nn.Module):
 
     def evaluate(self, data, eos_tokens=None, dump_contexts=False):
 
-        dist_fn = nn.PairwiseDistance(p=2)
-
         # get weights and compute WX for all words
         weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  # only one layer for the moment
         weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
@@ -169,7 +169,7 @@ class RNNModel(nn.Module):
 
             if dump_contexts: contexts.append(output[data[i]])
 
-            distance = dist_fn(hidden[0], output).pow(2)
+            distance = self.dist_fn(hidden[0], output, self.bias if not self.bias is None else None)
             softmaxed = torch.nn.functional.log_softmax(-self.temp * distance.view(-1), dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
