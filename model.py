@@ -9,12 +9,17 @@ from weight_drop import WeightDrop
 from sample import NegativeSampler
 
 from utils import repackage_hidden
+
 from distance import eucl_distance, dot_distance
+from activation import LogSoftmaxNS, LogSigmoidNS
 
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5, nsamples=10, temperature=65, frequencies=None, clip_dist=0.0, bias=True, bias_reg=1., distance='eucl'):
+    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5,
+                nsamples=10, temperature=65, frequencies=None, bias=True, bias_reg=1., distance='eucl',
+                activation='logsoftmax'):
+
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
@@ -50,14 +55,10 @@ class RNNModel(nn.Module):
         self.nsamples = nsamples
         self.temp = temperature
         self.ntoken = ntoken
-        self.clip_dist = clip_dist
-
-        if distance == 'eucl':
-            self.dist_fn = eucl_distance
-        else:
-            self.dist_fn = dot_distance
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
+        self.activation = LogSoftmaxNS() if activation == 'logsoftmax' else LogSigmoidNS()
+        self.dist_fn = eucl_distance if distance == 'eucl' else dot_distance
 
     def init_weights(self, bias):
         initrange = .1
@@ -74,35 +75,31 @@ class RNNModel(nn.Module):
 
         raw_output, new_hidden = self.rnn(emb, hidden)          # apply single layer rnn
         raw_output = self.lockdrop(raw_output, self.dropout)    # seq_len x bsz x nhid
-        raw_output = raw_output.view(seq_len, bsz, -1)
-        raw_output = torch.cat((hidden, raw_output), 0)#view((seq_len+1)*bsz, -1)
+        raw_output = raw_output.view(seq_len, bsz, -1)          # reshape for concat
+        raw_output = torch.cat((hidden, raw_output), 0)         # concatenate initial hidden state
 
         # initialize loss w/ positive terms
         pos_sample_distances = [-self.temp * self.dist_fn(raw_output[i], raw_output[i+1], None if self.bias is None else self.bias[data[i]]) for i in range(seq_len)]
-        # more efficient formulation?
-        #pos_sample_distances = self.temp * (raw_output[1:] - raw_output[:-1]).pow(2)
-        new_hidden = raw_output[-1].view(1, bsz, -1)
-        raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
-        # we want positive terms in the sum as well
-        sum_of_exp = torch.zeros(1+self.nsamples, seq_len*bsz).cuda()
+        new_hidden = raw_output[-1].view(1, bsz, -1)            # new hidden is last output
+        raw_output = raw_output[:-1].view(seq_len*bsz, -1)      # hiddens used for negative sampling are all except last
+
+        # x stores the positive samples at index 0 and the negative ones a 1:nsamples+1
+        x = torch.zeros(1+self.nsamples, seq_len*bsz).cuda()
         for i in range(seq_len):
-            sum_of_exp[0][i*bsz:(i+1)*bsz] = pos_sample_distances[i]
+            x[0][i*bsz:(i+1)*bsz] = pos_sample_distances[i]
         
-        # init loss
-        #mean_sample_distances = [d.mean() for d in pos_sample_distances]
-        #loss = sum(mean_sample_distances) / len(mean_sample_distances)
-
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
-
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
         samples_emb = self.lockdrop(samples_emb, self.dropouti)
 
-        weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  # only one layer for the moment
+        # only one layer for the moment
+        weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  
         weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
 
-        samples = samples.view(self.nsamples, bsz*seq_len)
+        # reshape samples for indexing and precompute the inputs to nonlinearity
+        samples = samples.view(self.nsamples, bsz*seq_len) 
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
 
@@ -116,14 +113,9 @@ class RNNModel(nn.Module):
 
             # compute loss term
             distance = self.dist_fn(raw_output, output, None if self.bias is None else self.bias[samples[i]])
-            if self.clip_dist:
-                distance = torch.clamp(distance, 0, self.clip_dist)
-
-            sum_of_exp[i+1] = -self.temp * distance
+            x[i+1] = -self.temp * distance
     
-        log_softmax = nn.LogSoftmax(dim=0)
-        loss = 0
-        loss = loss - log_softmax(sum_of_exp)[0].mean()#torch.log(sum_of_exp + self.eps).mean()
+        loss = self.activation(sum_of_exp)
         if self.bias_reg > 0: loss = loss + (0 if self.bias is None else self.bias_reg * torch.norm(self.bias).pow(2))
 
         return loss, new_hidden

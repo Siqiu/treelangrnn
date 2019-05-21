@@ -70,9 +70,9 @@ parser.add_argument('--init_h', type=int, default=0,   # 0 means only initialize
                     help='re-initialize the hidden state each ith minibatch (or each ith sentence if init_after_eos is true')
 parser.add_argument('--init_h_after_eos', type=bool, default=False,
                     help='if true, the hidden states are set to zero after each eos token')
-parser.add_argument('--clip_dist', type=float, default=0.,
-                    help='clips the distances to prevent samples from being pushed too far away')
 parser.add_argument('--distance', type=str, default='eucl')
+parser.add_argument('--activation', type=str, default='logsoftmax')
+parser.add_argument('--bias', type=bool, default=True)
 parser.add_argument('--bias_reg', type=float, default=0.)
 parser.add_argument('--val_out', type=str, default='val_loss')
 parser.add_argument('--entropy_out', type=str, default='entropy_')
@@ -134,7 +134,8 @@ def run(args):
     # Build the model
     ###############################################################################
 
-    model = RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.nsamples, args.temperature, frequencies, args.clip_dist, True, args.bias_reg, args.distance)
+    model = RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.nsamples,
+                    args.temperature, frequencies, args.bias, args.bias_reg, args.distance, args.activation)
     ###
     if args.resume:
         print('Resuming model ...')
