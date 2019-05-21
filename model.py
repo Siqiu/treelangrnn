@@ -14,7 +14,7 @@ from distance import eucl_distance, dot_distance
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5, nsamples=10, temperature=65, frequencies=None, clip_dist=0.0, bias=True, bias_reg=1.):
+    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5, nsamples=10, temperature=65, frequencies=None, clip_dist=0.0, bias=True, bias_reg=1., distance='eucl'):
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
@@ -52,13 +52,15 @@ class RNNModel(nn.Module):
         self.ntoken = ntoken
         self.clip_dist = clip_dist
 
-        #self.dist_fn = eucl_distance
-        self.dist_fn = dot_distance
+        if distance == 'eucl':
+            self.dist_fn = eucl_distance
+        else:
+            self.dist_fn = dot_distance
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
 
     def init_weights(self, bias):
-        initrange = 0.1
+        initrange = .1
         self.encoder.weight.data.uniform_(-initrange, initrange)
         if bias: self.decoder.weight.data.uniform_(-initrange, initrange)
 
@@ -88,8 +90,8 @@ class RNNModel(nn.Module):
             sum_of_exp[0][i*bsz:(i+1)*bsz] = pos_sample_distances[i]
         
         # init loss
-        mean_sample_distances = [d.mean() for d in pos_sample_distances]
-        loss = sum(mean_sample_distances) / len(mean_sample_distances)
+        #mean_sample_distances = [d.mean() for d in pos_sample_distances]
+        #loss = sum(mean_sample_distances) / len(mean_sample_distances)
 
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
@@ -123,8 +125,6 @@ class RNNModel(nn.Module):
         loss = 0
         loss = loss - log_softmax(sum_of_exp)[0].mean()#torch.log(sum_of_exp + self.eps).mean()
         if self.bias_reg > 0: loss = loss + (0 if self.bias is None else self.bias_reg * torch.norm(self.bias).pow(2))
-
-        print(self.bias.pow(2).pow(0.5).mean())
 
         return loss, new_hidden
 
