@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class LogSigmoidNS(nn.Module):
 
-	def __init__():
+	def __init__(self):
 		super(LogSigmoidNS, self).__init__()
 		self.activation = nn.LogSigmoid()
 
@@ -19,7 +19,7 @@ class LogSigmoidNS(nn.Module):
 
 class LogSoftmaxNS(nn.Module):
 
-	def __init__():
+	def __init__(self):
 		super(LogSoftmaxNS, self).__init__()
 		self.activation = nn.LogSoftmax(dim=0)
 
