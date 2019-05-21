@@ -31,3 +31,11 @@ class LogSoftmaxNS(nn.Module):
 
 		# the positive samples are at index 0 -> return mean logsoftmax
 		return -self.activation(x)[0].mean()
+
+class Simple(nn.Module):
+
+	def __init__(self):
+		super(Simple, self).__init__()
+
+	def forward(self, x):
+		return (-x[0] + x[1:].sum(0)).mean()

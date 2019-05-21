@@ -11,7 +11,7 @@ from sample import NegativeSampler
 from utils import repackage_hidden
 
 from distance import eucl_distance, dot_distance
-from activation import LogSoftmaxNS, LogSigmoidNS
+from activation import LogSoftmaxNS, LogSigmoidNS, Simple
 
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
@@ -58,6 +58,7 @@ class RNNModel(nn.Module):
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
         self.activation = LogSoftmaxNS() if activation == 'logsoftmax' else LogSigmoidNS()
+        self.activation = Simple()
         self.dist_fn = eucl_distance if distance == 'eucl' else dot_distance
 
     def init_weights(self, bias):
