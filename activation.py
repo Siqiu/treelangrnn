@@ -14,7 +14,7 @@ class LogSigmoidNS(nn.Module):
 			output: loss (i.e. mean of pos - neg)
 		'''
 		y = self.activation(x)
-		return y[0].mean()#-(y[0] - y[1:].sum(0)).mean()
+                return (-y[0] + y[1:].sum(0)).mean()#-(y[0] - y[1:].sum(0)).mean()
 
 
 class LogSoftmaxNS(nn.Module):
