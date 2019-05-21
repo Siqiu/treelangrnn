@@ -115,7 +115,7 @@ class RNNModel(nn.Module):
             distance = self.dist_fn(raw_output, output, None if self.bias is None else self.bias[samples[i]])
             x[i+1] = -self.temp * distance
     
-        loss = self.activation(sum_of_exp)
+        loss = self.activation(x)
         if self.bias_reg > 0: loss = loss + (0 if self.bias is None else self.bias_reg * torch.norm(self.bias).pow(2))
 
         return loss, new_hidden
