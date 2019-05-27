@@ -10,7 +10,6 @@ def dump_hiddens(hiddens, basepath=''):
 
 	n_hiddens = sum([len(h) for h in hiddens])
 	n_dims = hiddens[0][0].shape[1]
-	print('NDIMS: ' + str(n_dims))
 	data = np.zeros((n_hiddens, n_dims+1))
 
 	offset = 0
@@ -19,7 +18,7 @@ def dump_hiddens(hiddens, basepath=''):
 			data[offset + i, 0] = i
 			data[offset + i, 1:] = h
 
-		offset += len(h)
+		offset += len(hidden)
 
 	print(data)
 
