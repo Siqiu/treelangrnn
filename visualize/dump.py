@@ -5,6 +5,9 @@ def dump(data, basepath=''):
 	savepath = basepath + '.out'
 	np.savetxt(savepath, data)
 
+def dump_hiddens(hiddens, basepath=''):
+	pass
+
 
 def dump_val_loss(val_loss, epochs, basepath=''):
 	savepath = basepath + '.out'
