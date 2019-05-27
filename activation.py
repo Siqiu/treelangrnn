@@ -24,8 +24,8 @@ class LogSigmoidNS(nn.Module):
 
 	def forward(self, x):
 		'''
-			input: x of shape (nsamples + 1) x n
-			output: loss (i.e. mean of pos - neg)
+		#input: x of shape (nsamples + 1) x n
+		#output: loss (i.e. mean of pos - neg)
 		'''
 		y = self.activation(x)
 		return (-y[0] + y[1:].sum(0)).mean()#-(y[0] - y[1:].sum(0)).mean()
