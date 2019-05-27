@@ -20,7 +20,9 @@ def dump_hiddens(hiddens, basepath=''):
 
 		offset += len(hidden)
 
-	print(data)
+	savepath = basepath + '.out'
+	formatstr= ' '.join(['%i'] + ['%1.4e']*epochs)
+	np.savetxt(savepath, data, delimiter=' ', fmt=formatstr)
 
 
 
