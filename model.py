@@ -12,14 +12,14 @@ from utils import repackage_hidden
 
 from distance import eucl_distance, dot_distance
 from hb_helpers import pairwise_poinc_distance
-from activation import LogSoftmaxNS, LogSigmoidNS, Simple
+from activation import log_softmax, log_sigmoid
 
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
     def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5,
-                nsamples=10, temperature=65, frequencies=None, bias=True, bias_reg=1., distance='eucl',
-                activation='logsoftmax'):
+                nsamples=10, temperature=65, frequencies=None, bias=True, bias_reg=1., dist_fn='eucl',
+                activation_fn='logsoftmax'):
 
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
@@ -32,17 +32,16 @@ class RNNModel(nn.Module):
         self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=wdrop)
         print(self.rnn)
 
-
+        # initialize bias
         self.bias_reg = bias_reg
         if bias:
             self.decoder = nn.Linear(nhid, ntoken)
             self.bias = self.decoder.bias
         else:
             self.bias = None
-        #self.bias = nn.Parameter(torch.randn(ntoken), requires_grad=True).cuda() if bias else None
-
         self.init_weights(bias)
 
+        # store input arguments
         self.ninp = ninp
         self.nhid = nhid
         self.dropout = dropout
@@ -51,17 +50,32 @@ class RNNModel(nn.Module):
         self.dropoute = dropoute
         self.wdrop = wdrop
 
+        # nonlinearity needs to be the same as for RNN!
         self.nonlinearity = nn.Tanh()
-        self.eps = 1e-6
         self.nsamples = nsamples
         self.temp = temperature
         self.ntoken = ntoken
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
-        self.activation = LogSoftmaxNS() if activation == 'logsoftmax' else LogSigmoidNS()
-        #self.activation = Simple()
-        self.dist_fn = eucl_distance if distance == 'eucl' else dot_distance
-        #self.dist_fn = pairwise_poinc_distance
+
+        # set activation
+        if activation_fn == 'logsoftmax':
+            self.activation = log_softmax
+        elif activation_fn == 'logsigmoid':
+            self.activation = log_sigmoid
+        else:
+            self.activation = None
+
+        # set distance function
+        if dist_fn == 'eucl':
+            self.dist_fn = eucl_distance
+        elif dist_fn == 'dot':
+            self.dist_fn = dot_distance
+        elif dist_fn == 'poinc':
+            self.dist_fn = pairwise_poinc_distance
+        else:
+            dist_fn = None
+        
 
     def init_weights(self, bias):
         initrange = .1
@@ -124,7 +138,7 @@ class RNNModel(nn.Module):
         return loss, new_hidden
 
 
-    def evaluate(self, data, eos_tokens=None, dump_contexts=False):
+    def evaluate(self, data, eos_tokens=None, dump_hiddens=False):
 
         # get weights and compute WX for all words
         weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  # only one layer for the moment
@@ -138,14 +152,14 @@ class RNNModel(nn.Module):
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
         i = 0
-        dump_contexts = False
-        entropy, contexts, all_contexts = [], [], []
+
+        entropy, hiddens, all_hiddens = [], [], []
         while i < data.size(0):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
-            if dump_contexts: contexts.append(output[data[i]])
+            if dump_hiddens: hiddens.append(output[data[i]])
 
             distance = self.dist_fn(hidden[0], output, self.bias)
             softmaxed = torch.nn.functional.log_softmax(-self.temp * distance.view(-1), dim=0)
@@ -156,18 +170,21 @@ class RNNModel(nn.Module):
 
             if not eos_tokens is None and data[i].data.cpu().numpy()[0] in eos_tokens:
                 hidden = self.init_hidden(1)
-                if dump_contexts:
-                    all_contexts.append(contexts)
-                    contexts = []
+                if dump_hiddens:
+                    all_hiddens.append(hiddens)
+                    hiddens = []
             else:
                 hidden = output[data[i]].view(1, 1, -1)
             hidden = repackage_hidden(hidden)
 
             i = i + 1
 
-        all_contexts = all_contexts if not eos_tokens is None else contexts
-        print(all_contexts)
-        return total_loss, np.array(entropy)
+        all_hiddens = all_hiddens if not eos_tokens is None else hiddens
+        
+        if dump_hiddens:
+            return total_loss, np.array(entropy), all_hiddens
+        else:
+            return total_loss, np.array(entropy)
 
 
     def init_hidden(self, bsz):

@@ -165,8 +165,9 @@ class EntropyHistogram:
 		ncols = len(self.epochs)
 		ebins = np.linspace(eleft, eright, nbins)
 
-		self.fig = plt.figure(figsize=(16, 4))
-		self.fig.suptitle(self.title, fontsize=14)
+		self.fig = plt.figure(figsize=(14, 4))
+		#self.fig = plt.figure(figsize=(2, 8))
+		#self.fig.suptitle(self.title, fontsize=14)
 
 		for i, epoch in enumerate(self.epochs):
 
@@ -217,10 +218,10 @@ class EntropyHistogram:
 		return ax
 
 
-eh = EntropyHistogram('./', [1, 2, 4, 6])
-eh.make_histogram(0, 20, 50)
+eh = EntropyHistogram('./', [20,20,40,40])
+eh.make_histogram(0, 40, 50)
 plt.show()
-#eh.save('../../results/penn_100_uniform/'+eh.title + '.png')
+#eh.save('../../text/report_plots/awd_adam_0001.eps')
 #ed2d = EntropyDistance2D('../results/lstm_results/', 'adam', .0001, 0.4, [5, 10, 15, 20])
 #ed2d.make_heatmap(-25, 25, 0, 30, 100)
 #ed2d.save('similarity-entropy-scatter.png')
