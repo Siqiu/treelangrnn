@@ -8,7 +8,7 @@ import torch.nn as nn
 import data
 from model import RNNModel
 
-from visualize.dump import dump, dump_hiddens
+from visualize.dump import dump, dump_hiddens, dump_words
 from utils import batchify, batchify_padded, get_batch, repackage_hidden
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
@@ -77,6 +77,7 @@ parser.add_argument('--evaluate_every', type=int, default=1)
 
 # dump settings
 parser.add_argument('--dump_hiddens', action='store_true')
+parser.add_argument('--dump_words', action='store_true')
 parser.add_argument('--dump_valloss', type=str, default=None)
 parser.add_argument('--dump_entropy', type=str, default='entropy_')
 
@@ -164,12 +165,16 @@ def run(args):
     def evaluate(data_source, epoch, batch_size=1):
         # Turn on evaluation mode which disables dropout.
         model.eval()
+
         if args.dump_hiddens:
             loss, entropy, hiddens = model.evaluate(data_source, eos_tokens, args.dump_hiddens)
             dump_hiddens(hiddens, 'hiddens_' + str(epoch))
         else:
             loss, entropy = model.evaluate(data_source, eos_tokens)
         
+        if args.dump_words:
+            dump_words(model.encoder.weight.detach().cpu().numpy(), 'words_' + str(epoch))
+
         if not args.dump_entropy is None:
             dump(entropy, args.dump_entropy + str(epoch))
 

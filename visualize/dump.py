@@ -24,6 +24,14 @@ def dump_hiddens(hiddens, basepath=''):
 	formatstr= ' '.join(['%i'] + ['%1.4e']*n_dims)
 	np.savetxt(savepath, data, delimiter=' ', fmt=formatstr)
 
+def dump_words(words, basepath=''):
+	# words is numpy array 
+	nrows, ncols = words.shape
+
+	savepath = basepath + '.out'
+	formatstr= ' '.join(['%1.4e']*ncols)
+	np.savetxt(savepath, words, delimiter=' ', fmt=formatstr)
+
 
 
 def dump_val_loss(val_loss, epochs, basepath=''):
