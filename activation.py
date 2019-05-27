@@ -38,4 +38,4 @@ class Simple(nn.Module):
 		super(Simple, self).__init__()
 
 	def forward(self, x):
-		return (-x[0] + x[1:].sum(0)).mean()
+		return -(x[0] -x[1:].sum(0)).mean()

@@ -11,6 +11,7 @@ from sample import NegativeSampler
 from utils import repackage_hidden
 
 from distance import eucl_distance, dot_distance
+from hb_helpers import pairwise_poinc_distance
 from activation import LogSoftmaxNS, LogSigmoidNS, Simple
 
 class RNNModel(nn.Module):
@@ -58,8 +59,9 @@ class RNNModel(nn.Module):
 
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
         self.activation = LogSoftmaxNS() if activation == 'logsoftmax' else LogSigmoidNS()
-        self.activation = Simple()
+        #self.activation = Simple()
         self.dist_fn = eucl_distance if distance == 'eucl' else dot_distance
+        #self.dist_fn = pairwise_poinc_distance
 
     def init_weights(self, bias):
         initrange = .1
@@ -80,7 +82,7 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)         # concatenate initial hidden state
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [-self.temp * self.dist_fn(raw_output[i], raw_output[i+1], None if self.bias is None else self.bias[data[i]]) for i in range(seq_len)]
+        pos_sample_distances = [- self.temp * self.dist_fn(raw_output[i], raw_output[i+1], None if self.bias is None else self.bias[data[i]]) for i in range(seq_len)]
 
         new_hidden = raw_output[-1].view(1, bsz, -1)            # new hidden is last output
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)      # hiddens used for negative sampling are all except last
@@ -114,8 +116,8 @@ class RNNModel(nn.Module):
 
             # compute loss term
             distance = self.dist_fn(raw_output, output, None if self.bias is None else self.bias[samples[i]])
-            x[i+1] = -self.temp * distance
-    
+            x[i+1] = - self.temp * distance
+
         loss = self.activation(x)
         if self.bias_reg > 0: loss = loss + (0 if self.bias is None else self.bias_reg * torch.norm(self.bias).pow(2))
 
@@ -136,6 +138,7 @@ class RNNModel(nn.Module):
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
         i = 0
+        dump_contexts = False
         entropy, contexts, all_contexts = [], [], []
         while i < data.size(0):
 
@@ -163,6 +166,7 @@ class RNNModel(nn.Module):
             i = i + 1
 
         all_contexts = all_contexts if not eos_tokens is None else contexts
+        print(all_contexts)
         return total_loss, np.array(entropy)
 
 

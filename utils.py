@@ -34,20 +34,17 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
                 sentences.append(j+1)
             j += 1
 
-        i = j + 1
+        i = j
 
         # find longest sentence
         lengths = [sentences[j+1] - sentences[j] for j in range(len(sentences)-1)]
         longest = max(lengths)
         seq_lens.append(longest)
+        #print(seq_lens)
 
         # initialize empty container
-        batch = (torch.ones(bsz, longest) * ntokens).type(torch.LongTensor).cuda()
-        print(batch)
-        for j in range(len(sentences)-1):
-            print(lengths[j])
-            print(sentences[j:j+2])
-            print(data[sentences[j]:sentences[j+1]])
+        batch = (torch.ones(bsz, longest) * (ntokens-1)).type(torch.LongTensor).cuda()
+        for j in range(len(sentences)-1): 
             batch[j][0:lengths[j]] = data[sentences[j]:sentences[j+1]]
 
         batches.append(torch.t(batch))

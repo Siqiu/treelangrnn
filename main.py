@@ -43,7 +43,7 @@ parser.add_argument('--nonmono', type=int, default=5,
                     help='random seed')
 parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
-parser.add_argument('--log-interval', type=int, default=200, metavar='N',
+parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='report interval')
 randomhash = ''.join(str(time.time()).split('.'))
 parser.add_argument('--save', type=str,  default=randomhash+'.pt',
@@ -68,11 +68,11 @@ parser.add_argument('--uniform_freq', type=bool, default=True,
                     help='use uniform frequencies for negative sampling')
 parser.add_argument('--init_h', type=int, default=0,   # 0 means only initialize once
                     help='re-initialize the hidden state each ith minibatch (or each ith sentence if init_after_eos is true')
-parser.add_argument('--init_h_after_eos', type=bool, default=False,
+parser.add_argument('--init_h_after_eos', type=bool, default=True,
                     help='if true, the hidden states are set to zero after each eos token')
 parser.add_argument('--distance', type=str, default='eucl')
 parser.add_argument('--activation', type=str, default='logsoftmax')
-parser.add_argument('--bias', type=bool, default=True)
+parser.add_argument('--bias', action='store_false')
 parser.add_argument('--bias_reg', type=float, default=0.)
 parser.add_argument('--val_out', type=str, default='val_loss')
 parser.add_argument('--entropy_out', type=str, default='entropy_')
@@ -122,8 +122,9 @@ def run(args):
     eval_batch_size = 1
     test_batch_size = 1
     if args.init_h_after_eos:
-        ntokens = len(corpus.dictionary) + 1    # extra token for padding
+        ntokens = len(corpus.dictionary) + 1 if args.batch_size > 1 else len(corpus.dictionary)
         train_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)
+        
     else:
         ntokens = len(corpus.dictionary)
         train_data = batchify(corpus.train, args.batch_size, args)
@@ -178,7 +179,7 @@ def run(args):
         while i < train_data.size(0)-1:
 
             if args.init_h_after_eos:
-                seq_len = seq_lens[batch]
+                seq_len = seq_lens[batch] - 1
             else:
                 bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
                 # Prevent excessively small or negative sequence lengths
@@ -251,6 +252,12 @@ def run(args):
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train()
+            #dump(model.decoder.bias.cpu().detach().numpy(), 'bias_' + str(epoch) +'.out')
+            
+            if epoch % 5 > 0:
+                continue
+
+
             if 't0' in optimizer.param_groups[0]:
                 tmp = {}
                 for prm in model.parameters():
@@ -322,23 +329,35 @@ def run(args):
 '''
 
 gridsearch = False
+args.val_out = None
 if not gridsearch:
     valid_loss, test_loss = run(args)
-    dump(valid_loss, 'val_loss.out')
+    #dump(valid_loss, 'val_loss.out')
 else:
     args.val_out = None
     args.entropy_out = None
     
-    lrs = [0.25, 0.5, 1, 2, 4, 8]
-    temps = [0.001, 0.01, 0.1, 1, 5, 10, 50]
+    settings = [[0.2,3, 'logsoftmax', True, 'eucl', True], [1, 3, 'logsoftmax', True, 'eucl', True], [5, 3, 'logsoftmax', True, 'eucl', True],
+                [0.2,10, 'logsoftmax', True, 'eucl', True], [1,10, 'logsoftmax', True, 'eucl', True], [5,10, 'logsoftmax', True, 'eucl', True],
+                [0.2,30, 'logsoftmax', True, 'eucl', True], [1,30, 'logsoftmax', True, 'eucl', True], [5,30, 'logsoftmax', True, 'eucl', True]]
+    #settings = [[0.2, 1, 'logsoftmax', True, 'dot', True], [1, 1, 'logsoftmax', True, 'dot', True], [5, 1, 'logsoftmax', True, 'dot', True],
+    #            [0.2,10, 'logsoftmax', True, 'dot', True], [1, 10, 'logsoftmax', True, 'dot', True], [5, 10, 'logsoftmax', True, 'dot', True],
+    #            [0.2,30, 'logsoftmax', True, 'dot', True], [1, 30, 'logsoftmax', True, 'dot', True], [5, 30, 'logsoftmax', True, 'dot', True]]
     results = []
-    for lr in lrs:
-        args.lr = lr
-        for temp in temps:
-            args.temperature = temp
+    val_losses = []
+    for setting in settings:
+        args.lr = setting[0]
+        args.nsamples = setting[1]
+        args.activation = setting[2]
+        args.bias = setting[3]
+        args.distance = setting[4]
+        args.uniform = setting[5]
 
-            valid_loss, test_loss = run(args)
-            results.append((lr, temp, valid_loss, np.amin(valid_loss)))
-            
+        valid_loss, test_loss = run(args)
+        results.append((setting, sum([valid_loss[i+1]-valid_loss[i] for i in range(args.epochs-1)])/args.epochs, np.amin(valid_loss), test_loss))
+        val_losses.append(valid_loss)
+
+    for val_loss in val_losses:
+        print(val_loss)
     for result in results:
         print(result)
