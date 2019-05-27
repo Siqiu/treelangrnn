@@ -180,7 +180,7 @@ def run(args):
 
     def train():
         # Turn on training mode which enables dropout.
-        total_loss, avrg_loss = 0, avrg_loss
+        total_loss, avrg_loss = 0, 0
         start_time = time.time()
         ntokens = len(corpus.dictionary)
         batch, i = 0, 0
