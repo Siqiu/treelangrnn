@@ -126,6 +126,7 @@ def run(args):
     # batchify
     eval_batch_size = 1
     test_batch_size = 1
+    print(corpus.dictionary)
     if args.reinit_h:
         ntokens = len(corpus.dictionary) + 1 if args.batch_size > 1 else len(corpus.dictionary)
         train_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)    
