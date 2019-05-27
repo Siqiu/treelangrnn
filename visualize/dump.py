@@ -21,7 +21,7 @@ def dump_hiddens(hiddens, basepath=''):
 		offset += len(hidden)
 
 	savepath = basepath + '.out'
-	formatstr= ' '.join(['%i'] + ['%1.4e']*epochs)
+	formatstr= ' '.join(['%i'] + ['%1.4e']*n_dims)
 	np.savetxt(savepath, data, delimiter=' ', fmt=formatstr)
 
 
