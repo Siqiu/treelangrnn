@@ -166,8 +166,6 @@ def run(args):
         model.eval()
         if args.dump_hiddens:
             loss, entropy, hiddens = model.evaluate(data_source, eos_tokens, args.dump_hiddens)
-            for hidden in hiddens:
-                print(hiddens)
             dump_hiddens(hiddens, 'hiddens_' + str(epoch))
         else:
             loss, entropy = model.evaluate(data_source, eos_tokens)

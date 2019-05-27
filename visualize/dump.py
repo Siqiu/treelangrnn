@@ -6,7 +6,19 @@ def dump(data, basepath=''):
 	np.savetxt(savepath, data)
 
 def dump_hiddens(hiddens, basepath=''):
-	pass
+	# hiddens is a list of list
+
+	n_hiddens = sum([len(h) for h in hiddens])
+	n_dims = hiddens[0][0].shape[1]
+	print('NDIMS: ' + str(n_dims))
+	data = np.zeros((n_hiddens, n_dims+1))
+	for hidden in hiddens:
+		for i, h in enumerate(hidden):
+			data[i, 0] = i
+			data[i, 1:] = h
+
+	print(data)
+
 
 
 def dump_val_loss(val_loss, epochs, basepath=''):

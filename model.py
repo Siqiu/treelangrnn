@@ -159,7 +159,7 @@ class RNNModel(nn.Module):
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
             output = self.nonlinearity(all_words_times_W + hidden_times_U)
 
-            if dump_hiddens: hiddens.append(output[data[i]])
+            if dump_hiddens: hiddens.append(output[data[i]].data.cpu().numpy())
 
             distance = self.dist_fn(hidden[0], output, self.bias)
             softmaxed = torch.nn.functional.log_softmax(-self.temp * distance.view(-1), dim=0)
