@@ -10,7 +10,7 @@ from sample import NegativeSampler
 
 from utils import repackage_hidden
 
-from distance import eucl_distance, dot_distance
+from distance import eucl_distance, dot_distance, cone_distance
 from hb_helpers import pairwise_poinc_distance
 from activation import log_softmax, log_sigmoid
 
@@ -74,7 +74,7 @@ class RNNModel(nn.Module):
         elif dist_fn == 'poinc':
             self.dist_fn = pairwise_poinc_distance
         else:
-            dist_fn = None
+            self.dist_fn = cone_distance
         
 
     def init_weights(self, bias):
@@ -116,10 +116,10 @@ class RNNModel(nn.Module):
         weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
 
         # reshape samples for indexing and precompute the inputs to nonlinearity
-        samples = samples.view(self.nsamples, bsz*seq_len) 
+        samples = samples.view(self.nsamples, bsz*seq_len)
         samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
         hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
-
+        
         # iterate over samples to update loss
         for i in range(self.nsamples):
 
@@ -129,7 +129,10 @@ class RNNModel(nn.Module):
             output = output[0]
 
             # compute loss term
+            #bias = None
+            #distance = self.dist_fn(raw_output, output, None)
             distance = self.dist_fn(raw_output, output, None if self.bias is None else self.bias[samples[i]])
+            #distance = torch.clamp(distance, max=self.clamp)
             x[i+1] = self.temp * distance
 
         loss = self.activation(x)

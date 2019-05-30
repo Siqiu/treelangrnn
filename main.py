@@ -78,7 +78,7 @@ parser.add_argument('--evaluate_every', type=int, default=1)
 # dump settings
 parser.add_argument('--dump_hiddens', action='store_true')
 parser.add_argument('--dump_words', action='store_true')
-parser.add_argument('--dump_valloss', type=str, default=None)
+parser.add_argument('--dump_valloss', type=str, default='valloss')
 parser.add_argument('--dump_entropy', type=str, default='entropy_')
 
 args = parser.parse_args()
@@ -141,7 +141,7 @@ def run(args):
     ###############################################################################
 
     model = RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.nsamples,
-                    args.temperature, frequencies, not args.no_bias, args.bias_reg, args.dist_fn, args.activation_fn)
+                    args.temperature, frequencies, args.no_bias, args.bias_reg, args.dist_fn, args.activation_fn)
     ###
     if args.resume:
         print('Resuming model ...')
@@ -268,6 +268,8 @@ def run(args):
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train_loss = train()
+            _, s, _= np.linalg.svd(model.rnn.module.weight_hh_l0.cpu().detach().numpy())
+            print(s[0])
             #dump(model.decoder.bias.cpu().detach().numpy(), 'bias_' + str(epoch) +'.out')
             
             # skip to beginning if not in evaluation mode
@@ -349,5 +351,26 @@ def run(args):
     ### MAIN ###
 '''
 
-valid_loss, test_loss = run(args)
+#valid_loss, test_loss = run(args)
 
+l = [[('adam', 1e-4), ('adam', 1e-3), ('sgd', 1) , ('sgd', 10)],
+    [-100, -10, -1],
+    ['eucl']]
+args.dump_entropy = None
+args.dump_valloss = None
+import itertools
+L = list(itertools.product(*l))
+results = []
+for (opt, lr), temp, dist_fn in L:
+
+    settings = [opt, lr, temp, dist_fn]
+    args.optimizer = opt
+    args.lr = lr
+    args.temperature = temp
+    args.dist_fn = dist_fn
+
+    valid_loss, test_loss = run(args)
+    results.append(settings + [valid_loss])
+
+for result in results:
+    print(result)
