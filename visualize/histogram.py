@@ -218,7 +218,7 @@ class EntropyHistogram:
 		return ax
 
 
-eh = EntropyHistogram('./', [20,20,40,40])
+eh = EntropyHistogram('./', [10, 10, 10, 10])
 eh.make_histogram(0, 40, 50)
 plt.show()
 #eh.save('../../text/report_plots/awd_adam_0001.eps')
