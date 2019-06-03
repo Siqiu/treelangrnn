@@ -8,10 +8,10 @@ from weight_drop import WeightDrop
 
 from sample import NegativeSampler
 
-from utils import repackage_hidden
+from utils.utils import repackage_hidden
 
-from distance import eucl_distance, dot_distance, cone_distance
-from hb_helpers import pairwise_poinc_distance
+from eucl_distance.distance import eucl_distance, dot_distance
+from poinc_distance.poinc_distance import poinc_distance
 from activation import log_softmax, log_sigmoid
 
 class RNNModel(nn.Module):
@@ -72,9 +72,9 @@ class RNNModel(nn.Module):
         elif dist_fn == 'dot':
             self.dist_fn = dot_distance
         elif dist_fn == 'poinc':
-            self.dist_fn = pairwise_poinc_distance
+            self.dist_fn = poinc_distance
         else:
-            self.dist_fn = cone_distance
+            self.dist_fn = None
         
 
     def init_weights(self, bias):

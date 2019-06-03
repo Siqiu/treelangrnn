@@ -5,11 +5,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import data
-from model import RNNModel
+from utils import data
+from rnn_model import RNNModel
 
 from visualize.dump import dump, dump_hiddens, dump_words
-from utils import batchify, batchify_padded, get_batch, repackage_hidden
+from utils.utils import batchify, batchify_padded, get_batch, repackage_hidden
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
