@@ -170,7 +170,7 @@ def plot_lip_trees(path):
 	return fig
 
 
-fig = plot_lip_trees('../../results/lip/lip')
+fig = plot_lip_trees('../../results/lip/poinc_lip')
 plt.show()
 #fig.savefig('../text/report_plots/rnn_lip.pdf', bbox_inches='tight')
 
