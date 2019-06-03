@@ -1,7 +1,7 @@
 from poinc_distance.helpers import torch_poinc_dist_sq, torch_exp_map_zero
 import torch
 
-def poinc_distance(u, v, bias=None, c=1., cuda=True):
+def poinc_distance(u, v, c=1., cuda=True):
 
     N1, N2 = u.size(0), v.size(0)
 
@@ -15,6 +15,5 @@ def poinc_distance(u, v, bias=None, c=1., cuda=True):
 
     u_exp = torch_exp_map_zero(u_rep)
     v_exp = torch_exp_map_zero(v)
-
 
     return torch_poinc_dist_sq(u_exp, v_exp, c)

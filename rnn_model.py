@@ -34,12 +34,12 @@ class RNNModel(nn.Module):
 
         # initialize bias
         self.bias_reg = bias_reg
+        self.bias = None
         if bias:
             self.decoder = nn.Linear(nhid, ntoken)
-            self.bias = self.decoder.bias
-        else:
-            self.bias = None
-        self.init_weights(bias)
+            self.bias = self.decoder.bias  
+        
+        self.init_weights()
 
         # store input arguments
         self.ninp = ninp
@@ -76,11 +76,11 @@ class RNNModel(nn.Module):
         else:
             self.dist_fn = None
         
-
     def init_weights(self, bias):
         initrange = .1
         self.encoder.weight.data.uniform_(-initrange, initrange)
-        if bias: self.decoder.weight.data.uniform_(-initrange, initrange)
+        if not self.bias is None:
+            self.decoder.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, data, hidden, return_output=False):
 
@@ -96,7 +96,10 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)         # concatenate initial hidden state
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [self.temp * self.dist_fn(raw_output[i], raw_output[i+1], None if self.bias is None else self.bias[data[i]]) for i in range(seq_len)]
+        pos_sample_distances = [-self.temp * self.dist_fn(raw_output[i], raw_output[i+1]) for i in range(seq_len)]
+        if not self.bias is None:
+            # add bias if necessary
+            pos_sample_distances = [pos + self.bias[data[i]] for i, pos in enumerate(pos_sample_distances)]
 
         new_hidden = raw_output[-1].view(1, bsz, -1)            # new hidden is last output
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)      # hiddens used for negative sampling are all except last
@@ -131,9 +134,10 @@ class RNNModel(nn.Module):
             # compute loss term
             #bias = None
             #distance = self.dist_fn(raw_output, output, None)
-            distance = self.dist_fn(raw_output, output, None if self.bias is None else self.bias[samples[i]])
-            #distance = torch.clamp(distance, max=self.clamp)
-            x[i+1] = self.temp * distance
+            distance = self.dist_fn(raw_output, output)
+            x[i+1] = -self.temp * distance
+            if not self.bias is None:
+                x[i+1] = x[i+1] + self.bias[samples[i]]
 
         loss = self.activation(x)
         if self.bias_reg > 0: loss = loss + (0 if self.bias is None else self.bias_reg * torch.norm(self.bias).pow(2))
@@ -164,8 +168,8 @@ class RNNModel(nn.Module):
 
             if dump_hiddens: hiddens.append(output[data[i]].data.cpu().numpy())
 
-            distance = self.dist_fn(hidden[0], output, self.bias)
-            softmaxed = torch.nn.functional.log_softmax(self.temp * distance.view(-1), dim=0)
+            distance = self.dist_fn(hidden[0], output)
+            softmaxed = torch.nn.functional.log_softmax(-self.temp * distance.view(-1) + (0. if self.bias is None else self.bias), dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
