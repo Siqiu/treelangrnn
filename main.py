@@ -11,6 +11,11 @@ from rnn_model import RNNModel
 from visualize.dump import dump, dump_hiddens, dump_words
 from utils.utils import batchify, batchify_padded, get_batch, repackage_hidden
 
+from collections import namedtuple
+Sampling = namedtuple("Sampling", "nsamples frequencies")
+Dropouts = namedtuple("Dropouts", "dropout dropouth dropouti dropoute wdrop")
+Regularizers = namedtuple("Regularizers", "bias")
+
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
                     help='location of the data corpus')
@@ -69,7 +74,7 @@ parser.add_argument('--nsamples', type=int, default=10,
 
 parser.add_argument('--dist_fn', type=str, default='eucl')
 parser.add_argument('--activation_fn', type=str, default='logsoftmax')
-parser.add_argument('--no_bias', action='store_false')
+parser.add_argument('--no_bias', action='store_true')
 parser.add_argument('--uni_freq', action='store_true')
 parser.add_argument('--reinit_h', action='store_true')
 parser.add_argument('--bias_reg', type=float, default=0.)
@@ -83,6 +88,7 @@ parser.add_argument('--dump_entropy', type=str, default='entropy_')
 
 args = parser.parse_args()
 args.tied = True
+
 
 def run(args):
 
@@ -140,8 +146,12 @@ def run(args):
     # Build the model
     ###############################################################################
 
-    model = RNNModel(ntokens, args.emsize, args.nhid, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.nsamples,
-                    args.temperature, frequencies, args.no_bias, args.bias_reg, args.dist_fn, args.activation_fn)
+    sampling = Sampling(args.nsamples, frequencies)
+    dropouts = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
+    regularizers = Regularizers(args.bias_reg)
+
+    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, sampling, dropouts, regularizers)
+
     ###
     if args.resume:
         print('Resuming model ...')

@@ -17,70 +17,63 @@ from activation import log_softmax, log_sigmoid
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0.5,
-                nsamples=10, temperature=65, frequencies=None, bias=True, bias_reg=1., dist_fn='eucl',
-                activation_fn='logsoftmax'):
+    def __init__(self, ntoken, ninp, nhid, beta=10, bias=True, dist_fn='eucl', sampling=None, dropouts=None, regularizers=None):
 
+        initrange = 0.1
         super(RNNModel, self).__init__()
+
+        # initialize dropouts
         self.lockdrop = LockedDropout()
-        self.idrop = nn.Dropout(dropouti)
-        self.hdrop = nn.Dropout(dropouth)
-        self.drop = nn.Dropout(dropout)
+        self.idrop = nn.Dropout(dropouts.dropouti)
+        self.hdrop = nn.Dropout(dropouts.dropouth)
+        self.drop = nn.Dropout(dropouts.dropout)
+       
         self.encoder = nn.Embedding(ntoken, ninp)
+        self.encoder = self.init_weights(self.encoder, initrange)
 
         self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)
-        self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=wdrop)
+        self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=dropouts.wdrop)
         print(self.rnn)
 
         # initialize bias
-        self.bias_reg = bias_reg
-        self.bias = None
         if bias:
             self.decoder = nn.Linear(nhid, ntoken)
-            self.bias = self.decoder.bias  
-        
-        self.init_weights()
+            self.decoder = self.init_weights(self.decoder, initrange)
+            self.bias = self.decoder.bias
+        else: self.bias = None
 
         # store input arguments
         self.ninp = ninp
         self.nhid = nhid
-        self.dropout = dropout
-        self.dropouti = dropouti
-        self.dropouth = dropouth
-        self.dropoute = dropoute
-        self.wdrop = wdrop
+        self.dropout = dropouts.dropout
+        self.dropouti = dropouts.dropouti
+        self.dropouth = dropouts.dropouth
+        self.dropoute = dropouts.dropoute
+        self.wdrop = dropouts.wdrop
+
+        # regularizers
+        self.regularizers = regularizers
 
         # nonlinearity needs to be the same as for RNN!
         self.nonlinearity = nn.Tanh()
-        self.nsamples = nsamples
-        self.temp = temperature
-        self.ntoken = ntoken
+        self.activation = log_softmax
+        self.ntoken = ntoken    # number of tokens
+        self.beta = beta        # temperature
 
-        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if frequencies is None else frequencies)
-
-        # set activation
-        if activation_fn == 'logsoftmax':
-            self.activation = log_softmax
-        elif activation_fn == 'logsigmoid':
-            self.activation = log_sigmoid
-        else:
-            self.activation = None
+        self.nsamples = sampling.nsamples
+        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if sampling.frequencies is None else frequencies)
 
         # set distance function
-        if dist_fn == 'eucl':
-            self.dist_fn = eucl_distance
-        elif dist_fn == 'dot':
-            self.dist_fn = dot_distance
-        elif dist_fn == 'poinc':
-            self.dist_fn = poinc_distance
-        else:
-            self.dist_fn = None
-        
-    def init_weights(self, bias):
-        initrange = .1
-        self.encoder.weight.data.uniform_(-initrange, initrange)
-        if not self.bias is None:
-            self.decoder.weight.data.uniform_(-initrange, initrange)
+        if dist_fn == 'eucl': self.dist_fn = eucl_distance
+        elif dist_fn == 'dot': self.dist_fn = dot_distance
+        elif dist_fn == 'poinc': self.dist_fn = poinc_distance
+        else: self.dist_fn = None
+      
+
+    def init_weights(self, module, initrange=0.1):
+        model.weight.data.uniform_(-initrange, initrange)
+        return model
+
 
     def forward(self, data, hidden, return_output=False):
 
@@ -140,7 +133,10 @@ class RNNModel(nn.Module):
                 x[i+1] = x[i+1] + self.bias[samples[i]]
 
         loss = self.activation(x)
-        if self.bias_reg > 0: loss = loss + (0 if self.bias is None else self.bias_reg * torch.norm(self.bias).pow(2))
+
+        # apply regularizer for bias
+        if self.regularizers.bias > 0:
+            loss = loss + (0 if self.bias is None else self.regularizers.bias * torch.norm(self.bias).pow(2))
 
         return loss, new_hidden
 
