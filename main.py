@@ -85,6 +85,7 @@ parser.add_argument('--dump_hiddens', action='store_true')
 parser.add_argument('--dump_words', action='store_true')
 parser.add_argument('--dump_valloss', type=str, default='valloss')
 parser.add_argument('--dump_entropy', type=str, default='entropy_')
+parser.add_argument('--annealing', type=float, default=0.)
 
 args = parser.parse_args()
 args.tied = True
