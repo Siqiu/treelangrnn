@@ -89,7 +89,7 @@ class RNNModel(nn.Module):
         raw_output = torch.cat((hidden, raw_output), 0)         # concatenate initial hidden state
 
         # initialize loss w/ positive terms
-        pos_sample_distances = [-self.temp * self.dist_fn(raw_output[i], raw_output[i+1]) for i in range(seq_len)]
+        pos_sample_distances = [-self.beta * self.dist_fn(raw_output[i], raw_output[i+1]) for i in range(seq_len)]
         if not self.bias is None:
             # add bias if necessary
             pos_sample_distances = [pos + self.bias[data[i]] for i, pos in enumerate(pos_sample_distances)]
@@ -128,7 +128,7 @@ class RNNModel(nn.Module):
             #bias = None
             #distance = self.dist_fn(raw_output, output, None)
             distance = self.dist_fn(raw_output, output)
-            x[i+1] = -self.temp * distance
+            x[i+1] = -self.beta * distance
             if not self.bias is None:
                 x[i+1] = x[i+1] + self.bias[samples[i]]
 
@@ -165,7 +165,7 @@ class RNNModel(nn.Module):
             if dump_hiddens: hiddens.append(output[data[i]].data.cpu().numpy())
 
             distance = self.dist_fn(hidden[0], output)
-            softmaxed = torch.nn.functional.log_softmax(-self.temp * distance.view(-1) + (0. if self.bias is None else self.bias), dim=0)
+            softmaxed = torch.nn.functional.log_softmax(-self.beta * distance.view(-1) + (0. if self.bias is None else self.bias), dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
