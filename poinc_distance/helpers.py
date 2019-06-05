@@ -15,7 +15,7 @@ def torch_clip_by_norm(v, clip_norm):
     idxs = v_norm > clip_norm
 
     v_clip = v
-    v_clip[idxs, :] = v[idxs, :] * clip_norm / (EPS + v_norm[idxs, None])
+    #v_clip[idxs, :] = v[idxs, :] * clip_norm / (EPS + v_norm[idxs, None])
     return v_clip
 
 def torch_project_hyp_vecs(x, c):
@@ -38,7 +38,6 @@ def torch_exp_map_zero(v, c=1):
     return torch_project_hyp_vecs(result, c)
 
 def torch_poinc_dist_sq(u, v, c):
-    sqrt_c = np.sqrt(c)
     m = torch_mob_add(-u, v, c) + EPS
     atanh_x = torch.norm(m, dim=1)
     dist_poincare = 2 * torch_atanh(atanh_x)
