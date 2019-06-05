@@ -72,7 +72,7 @@ class RNNModel(nn.Module):
 
     def init_weights(self, module, initrange=0.1):
         module.weight.data.uniform_(-initrange, initrange)
-        return model
+        return module
 
 
     def forward(self, data, hidden, return_output=False):
