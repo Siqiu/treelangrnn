@@ -362,8 +362,8 @@ def run(args):
     ### MAIN ###
 '''
 
-#valid_loss, test_loss = run(args)
-
+valid_loss, test_loss = run(args)
+'''
 l = [[('adam', 1e-4), ('adam', 1e-3), ('sgd', 1) , ('sgd', 10)],
     [-100, -10, -1],
     ['eucl']]
@@ -385,3 +385,4 @@ for (opt, lr), temp, dist_fn in L:
 
 for result in results:
     print(result)
+'''
