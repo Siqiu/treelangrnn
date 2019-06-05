@@ -15,7 +15,9 @@ def torch_clip_by_norm(v, clip_norm):
     idxs = v_norm > clip_norm
 
     v_clip = v
-    #v_clip[idxs, :] = v[idxs, :] * clip_norm / (EPS + v_norm[idxs, None])
+    multiplier = torch.ones(v_norm.size()).cuda()
+    multiplier[idxs] = clip_norm / (EPS + v_norm[idxs, None])
+    v_clip[idxs, :] = v[idxs, :] * multiplier
     return v_clip
 
 def torch_project_hyp_vecs(x, c):
