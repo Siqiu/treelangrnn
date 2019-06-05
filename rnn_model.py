@@ -9,6 +9,7 @@ from weight_drop import WeightDrop
 from sample import NegativeSampler
 
 from utils.utils import repackage_hidden
+from splitcross import SplitCrossEntropyLoss
 
 from eucl_distance.distance import eucl_distance, dot_distance
 from poinc_distance.poinc_distance import poinc_distance
@@ -17,7 +18,7 @@ from activation import log_softmax, log_sigmoid
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, beta=10, bias=True, dist_fn='eucl', sampling=None, dropouts=None, regularizers=None):
+    def __init__(self, ntoken, ninp, nhid, beta=10, bias=True, dist_fn='eucl', annealing=0., sampling=None, dropouts=None, regularizers=None):
 
         initrange = 0.1
         super(RNNModel, self).__init__()
@@ -35,11 +36,14 @@ class RNNModel(nn.Module):
         self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=dropouts.wdrop)
         print(self.rnn)
 
+        self.decoder = nn.Linear(nhid, ntoken)
+        self.decoder = self.init_weights(self.decoder, initrange)
+        tie_weights = True
+        if tie_weights:
+            self.decoder.weight = self.encoder.weight
+
         # initialize bias
-        if bias:
-            self.decoder = nn.Linear(nhid, ntoken)
-            self.decoder = self.init_weights(self.decoder, initrange)
-            self.bias = self.decoder.bias
+        if bias: self.bias = self.decoder.bias
         else: self.bias = None
 
         # store input arguments
@@ -56,9 +60,17 @@ class RNNModel(nn.Module):
 
         # nonlinearity needs to be the same as for RNN!
         self.nonlinearity = nn.Tanh()
+
+        # loss functions
         self.activation = log_softmax
+        self.splitcel = SplitCrossEntropyLoss(nhid, [])
+        
         self.ntoken = ntoken    # number of tokens
         self.beta = beta        # temperature
+
+        # alpha for annealing
+        self.step = annealing                       # increase alpha by step each batch
+        self.alpha = 0. if annealing >= 0. else 1.  # i.e. for annealing < 0 we don't do it
 
         self.nsamples = sampling.nsamples
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if sampling.frequencies is None else frequencies)
@@ -71,8 +83,8 @@ class RNNModel(nn.Module):
       
 
     def init_weights(self, module, initrange=0.1):
-        model.weight.data.uniform_(-initrange, initrange)
-        return model
+        module.weight.data.uniform_(-initrange, initrange)
+        return module
 
 
     def forward(self, data, hidden, return_output=False):
@@ -88,55 +100,72 @@ class RNNModel(nn.Module):
         raw_output = raw_output.view(seq_len, bsz, -1)          # reshape for concat
         raw_output = torch.cat((hidden, raw_output), 0)         # concatenate initial hidden state
 
-        # initialize loss w/ positive terms
-        pos_sample_distances = [-self.temp * self.dist_fn(raw_output[i], raw_output[i+1]) for i in range(seq_len)]
-        if not self.bias is None:
-            # add bias if necessary
-            pos_sample_distances = [pos + self.bias[data[i]] for i, pos in enumerate(pos_sample_distances)]
+        loss1, loss2 = 0., 0.
+        if self.alpha < 1:
+            '''
+                compute perplexity based SoTA models
+            '''
+            weight, bias = self.decoder.weight, self.decoder.bias
+            loss1 = self.splitcel(raw_output[1:].view(seq_len * bsz, -1), data.view(seq_len * bsz), weight, bias)
 
-        new_hidden = raw_output[-1].view(1, bsz, -1)            # new hidden is last output
-        raw_output = raw_output[:-1].view(seq_len*bsz, -1)      # hiddens used for negative sampling are all except last
+        if self.alpha > 0:
+            '''
+                compute perplexity based on treelang model
+            '''
 
-        # x stores the positive samples at index 0 and the negative ones a 1:nsamples+1
-        x = torch.zeros(1+self.nsamples, seq_len*bsz).cuda()
-        for i in range(seq_len):
-            x[0][i*bsz:(i+1)*bsz] = pos_sample_distances[i]
-        
-        # process negative samples
-        samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
-        samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
-        samples_emb = self.lockdrop(samples_emb, self.dropouti)
-
-        # only one layer for the moment
-        weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  
-        weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
-
-        # reshape samples for indexing and precompute the inputs to nonlinearity
-        samples = samples.view(self.nsamples, bsz*seq_len)
-        samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
-        hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
-        
-        # iterate over samples to update loss
-        for i in range(self.nsamples):
-
-            # compute output of negative samples
-            output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
-            output = self.lockdrop(output.view(1, output.size(0), -1), self.dropout)
-            output = output[0]
-
-            # compute loss term
-            #bias = None
-            #distance = self.dist_fn(raw_output, output, None)
-            distance = self.dist_fn(raw_output, output)
-            x[i+1] = -self.temp * distance
+            # initialize loss w/ positive terms
+            pos_sample_distances = [-self.temp * self.dist_fn(raw_output[i], raw_output[i+1]) for i in range(seq_len)]
             if not self.bias is None:
-                x[i+1] = x[i+1] + self.bias[samples[i]]
+                # add bias if necessary
+                pos_sample_distances = [pos + self.bias[data[i]] for i, pos in enumerate(pos_sample_distances)]
 
-        loss = self.activation(x)
+            new_hidden = raw_output[-1].view(1, bsz, -1)            # new hidden is last output
+            raw_output = raw_output[:-1].view(seq_len*bsz, -1)      # hiddens used for negative sampling are all except last
+
+            # x stores the positive samples at index 0 and the negative ones a 1:nsamples+1
+            x = torch.zeros(1+self.nsamples, seq_len*bsz).cuda()
+            for i in range(seq_len):
+                x[0][i*bsz:(i+1)*bsz] = pos_sample_distances[i]
+            
+            # process negative samples
+            samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
+            samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
+            samples_emb = self.lockdrop(samples_emb, self.dropouti)
+
+            # only one layer for the moment
+            weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  
+            weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
+
+            # reshape samples for indexing and precompute the inputs to nonlinearity
+            samples = samples.view(self.nsamples, bsz*seq_len)
+            samples_times_W = torch.nn.functional.linear(samples_emb, weights_ih, bias_ih).view(self.nsamples, bsz*seq_len, -1)
+            hiddens_times_U = torch.nn.functional.linear(raw_output, weights_hh, bias_hh)
+            
+            # iterate over samples to update loss
+            for i in range(self.nsamples):
+
+                # compute output of negative samples
+                output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
+                output = self.lockdrop(output.view(1, output.size(0), -1), self.dropout)
+                output = output[0]
+
+                # compute loss term
+                distance = self.dist_fn(raw_output, output)
+                x[i+1] = -self.temp * distance
+                if not self.bias is None:
+                    x[i+1] = x[i+1] + self.bias[samples[i]]
+
+            loss2 = self.activation(x)
+
+        # loss is mixture of loss1 and loss2
+        loss = (1-self.alpha)*loss1 + self.alpha*loss2   
 
         # apply regularizer for bias
         if self.regularizers.bias > 0:
             loss = loss + (0 if self.bias is None else self.regularizers.bias * torch.norm(self.bias).pow(2))
+
+        # update alpha for annealing
+        self.alpha = min(1., self.alpha + self.step)
 
         return loss, new_hidden
 

@@ -85,7 +85,7 @@ parser.add_argument('--dump_hiddens', action='store_true')
 parser.add_argument('--dump_words', action='store_true')
 parser.add_argument('--dump_valloss', type=str, default='valloss')
 parser.add_argument('--dump_entropy', type=str, default='entropy_')
-parser.add_argument('--annealing', type=float, default=0.)
+parser.add_argument('--annealing', type=float, default=0.005)
 
 args = parser.parse_args()
 args.tied = True
@@ -151,7 +151,7 @@ def run(args):
     dropouts = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
     regularizers = Regularizers(args.bias_reg)
 
-    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, sampling, dropouts, regularizers)
+    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.annealing, sampling, dropouts, regularizers)
 
     ###
     if args.resume:
