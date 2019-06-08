@@ -361,10 +361,13 @@ def run(args):
     ### MAIN ###
 '''
 
+valid_loss, test_loss = run(args)
+#args.dist_fn = 'poinc'
 #valid_loss, test_loss = run(args)
 
-l = [[('adam', 1e-4), ('adam', 1e-3), ('sgd', 1) , ('sgd', 10)],
-    [-100, -10, -1],
+'''
+l = [[('adam', 1e-4), ('adam', 1e-3), ('sgd', 1e-4), ('sgd', 1e-3), ('sgd', 1e-2), ('sgd', 1e-1), ('sgd', 1) , ('sgd', 10)],
+    [1, 10],
     ['eucl']]
 args.dump_entropy = None
 args.dump_valloss = None
@@ -384,3 +387,4 @@ for (opt, lr), temp, dist_fn in L:
 
 for result in results:
     print(result)
+'''
