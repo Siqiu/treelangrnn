@@ -14,14 +14,14 @@ def soft_threshold1(d, r, inf=1e4):
 	dnew[idxs] = d[idxs]
 	return torch.clamp(dnew, max=inf)
 
+'''
 def soft_threshold2(d, r, inf=1e4):
-	# continuous at d = r
-	# f(d,r) = d if d < r else r + exp(d-r) - 1
-	idxs = d < r
+	# continuous at d = r # f(d,r) = d if d < r else r + exp(d-r) - 1
+        idxs = d < r
 	dnew = r + torch.exp(d - r) - 1
 	dnew[idxs] = d[idxs]
 	return torch.clamp(dnew, max=inf)
-
+'''
 
 class DynamicThreshold(nn.Module):
 
