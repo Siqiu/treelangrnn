@@ -19,7 +19,7 @@ def soft_threshold2(d, r, inf=1e4):
 	# f(d,r) = d if d < r else r + exp(d-r) - 1
 	idxs = d < r
 	dnew = r + torch.exp(d - r) - 1
-	dnew[idxs] = d
+	dnew[idxs] = d[idxs]
 	return torch.clamp(dnew, max=inf)
 
 

@@ -33,7 +33,7 @@ class RNNModel(nn.Module):
         self.encoder = nn.Embedding(ntoken, ninp)
         self.encoder = self.init_weights(self.encoder, initrange)
 
-        self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0, nonlinearity='relu')
+        self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)#, nonlinearity='relu')
         self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=dropouts.wdrop)
         print(self.rnn)
 
@@ -57,7 +57,7 @@ class RNNModel(nn.Module):
         self.regularizers = regularizers
 
         # nonlinearity needs to be the same as for RNN!
-        self.nonlinearity = nn.ReLU()
+        self.nonlinearity = nn.Tanh()#nn.ReLU()
         self.activation = log_softmax
         self.ntoken = ntoken    # number of tokens
         self.beta = beta        # temperature
@@ -76,7 +76,7 @@ class RNNModel(nn.Module):
         elif threshold.method == 'soft2': self.threshold = soft_threshold2
         else: self.threshold = None
 
-        self.radius = self.threshold.radius
+        self.radius = threshold.radius
         self.inf = 1e4
       
 

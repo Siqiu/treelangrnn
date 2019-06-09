@@ -154,7 +154,7 @@ def run(args):
     sampling = Sampling(args.nsamples, frequencies)
     dropouts = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
     regularizers = Regularizers(args.bias_reg)
-    treshold = Threshold(args.threshold_method, args.threshold_radius) if not args.threshold_method == 'none' else None
+    threshold = Threshold(args.threshold_method, args.threshold_radius) if not args.threshold_method == 'none' else None
 
     model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, sampling, dropouts, regularizers, threshold)
 
@@ -370,7 +370,20 @@ def run(args):
 valid_loss, test_loss = run(args)
 #args.dist_fn = 'poinc'
 #valid_loss, test_loss = run(args)
+'''
+results = []
+l = [2. * (i+1) for i in range(10)]
+for li in l:
+    args.dump_entropy = None
+    args.dump_valloss = None
+    args.threshold_radius = li
+    valid_loss, test_loss = run(args)
 
+    results.append((li, valid_loss))
+
+for result in results:
+    print(result)
+'''
 '''
 l = [[('adam', 1e-4), ('adam', 1e-3), ('sgd', 1e-4), ('sgd', 1e-3), ('sgd', 1e-2), ('sgd', 1e-1), ('sgd', 1) , ('sgd', 10)],
     [1, 10],
