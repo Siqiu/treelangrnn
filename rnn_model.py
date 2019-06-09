@@ -74,7 +74,9 @@ class RNNModel(nn.Module):
         if threshold.method == 'hard': self.threshold = hard_threshold
         elif threshold.method == 'soft1': self.threshold = soft_threshold1
         elif threshold.method == 'soft2': self.threshold = soft_threshold2
+        elif threshold.method == 'dynamic': self.threshold = DynamicThreshold(nhid, threshold.nhid, threshold.nlayers)
         else: self.threshold = None
+        self.threshold_method = threshold.method
 
         self.radius = threshold.radius
         self.inf = 1e4
@@ -101,9 +103,15 @@ class RNNModel(nn.Module):
         # initialize loss w/ positive terms
         # compute distances between consecutive hidden states
         pos_sample_distances = [self.dist_fn(raw_output[i], raw_output[i+1]) for i in range(seq_len)]
+
         if not self.threshold is None:
             # do the thresholding
-            pos_sample_distances = [self.threshold(d, self.radius, self.inf) for d in pos_sample_distances]
+            if self.threshold_method == 'dynamic':
+                pos_sample_distances = [self.threshold(d, h, self.inf) for h,d in zip(raw_output, pos_sample_distances)]
+            else:
+                pos_sample_distances = [self.threshold(d, self.radius, self.inf) for d in pos_sample_distances]
+        
+
         # apply temperature
         pos_sample_distances = [-self.beta * d for d in pos_sample_distances]
         if not self.bias is None:
