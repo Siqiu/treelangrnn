@@ -15,7 +15,7 @@ from collections import namedtuple
 Sampling = namedtuple("Sampling", "nsamples frequencies")
 Dropouts = namedtuple("Dropouts", "dropout dropouth dropouti dropoute wdrop")
 Regularizers = namedtuple("Regularizers", "bias")
-Threshold = namedtuple("Threshold", "method radius", "nlayers", "nhid")
+Threshold = namedtuple("Threshold", "method radius nlayers nhid")
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
