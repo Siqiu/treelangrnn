@@ -49,7 +49,7 @@ class DynamicThreshold(nn.Module):
 		if r.size(0) > 1:
 			r = r.view(d.size())
 
-		idxs = d < r
+		idxs = (d < r).view(d.size())
 		dnew = r * torch.exp(d - r)
 		print(dnew.size(), d.size(), idxs.size(), r.size() )
 		dnew[idxs] = d[idxs]
