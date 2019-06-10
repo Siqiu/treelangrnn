@@ -30,7 +30,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
 
         # get the sentences
         j, sentences = i, [i]
-        while j < data.size(0) and len(sentences) < bsz+1:
+        while j < data.size(0) and len(sentences) < bsz:
             if int(data[j].data.cpu().numpy()) in eos_tokens:
                 sentences.append(j+1)
             j += 1
@@ -45,7 +45,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
         # initialize batch binary
         batch_binary = (torch.zeros(bsz, longest)).type(torch.FloatTensor).cuda()
         for k,l in enumerate(lengths):
-            batch_binary[:l-1,k] = 1.
+            batch_binary[:l,k] = 1.
 
         print(batch_binary)
 
