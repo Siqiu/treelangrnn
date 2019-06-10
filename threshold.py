@@ -46,7 +46,6 @@ class DynamicThreshold(nn.Module):
 		# get r from neural net
 		r = self.net(hiddens).pow(2)
 		if r.size(0) > 1: r = r.view(d.size())
-		print(r)
 
 		if len(d.size()) > 1:
 			idxs = d < r
