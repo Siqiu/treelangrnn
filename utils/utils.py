@@ -44,17 +44,19 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
         seq_lens.append(longest)
 
         # initialize batch binary
-        batch_binary = (torch.zeros(bsz, longest)).type(torch.FloatTensor).cuda()
+        batch_binary = (torch.zeros(longest, bsz)).type(torch.FloatTensor).cuda()
         for k,l in enumerate(lengths):
             batch_binary[:l,k] = 1.
 
-        print(batch_binary)
+        
 
         # initialize empty container
-        batch = (torch.ones(bsz, longest) * (ntokens-1)).type(torch.LongTensor).cuda()
+        batch = (torch.ones(longest, bsz) * (ntokens-1)).type(torch.LongTensor).cuda()
         for j in range(len(sentences)-1): 
             batch[j][0:lengths[j]] = data[sentences[j]:sentences[j+1]]
 
+        print(batch_binary)
+        print(batch)
         batches.append(torch.t(batch))
 
     return torch.cat(batches, 0), batch_binary, seq_lens
