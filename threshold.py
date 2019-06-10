@@ -46,5 +46,5 @@ class DynamicThreshold(nn.Module):
 		# get r from neural net
 		r = self.net(hiddens).pow(2)
 		print(r)
-		print(hiddens.size(), r.size())
+		print(d.size(), r.size())
 		return soft_threshold1(d, r, inf)
