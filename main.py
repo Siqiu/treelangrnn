@@ -236,6 +236,7 @@ def run(args):
 
             #raw_loss = model.train_crossentropy(data, eos_tokens)
             raw_loss, hidden = model(data, binary, hidden)
+            avrg_loss = avrg_loss + total_loss * seq_len
 
             loss = raw_loss
             '''
@@ -261,7 +262,6 @@ def run(args):
                         'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
                     epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
                     elapsed * 1000 / args.log_interval, cur_loss, cur_loss, cur_loss / math.log(2)))
-                avrg_loss = avrg_loss + total_loss
                 total_loss = 0
                 start_time = time.time()
             ###
