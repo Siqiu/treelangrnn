@@ -87,7 +87,7 @@ class RNNModel(nn.Module):
         return module
 
 
-    def forward(self, data, hidden, return_output=False):
+    def forward(self, data, binary, hidden, return_output=False):
 
         # get batch size and sequence length
         seq_len, bsz = data.size()
@@ -102,7 +102,7 @@ class RNNModel(nn.Module):
 
         # initialize loss w/ positive terms
         # compute distances between consecutive hidden states
-        pos_sample_distances = [self.dist_fn(raw_output[i], raw_output[i+1]) for i in range(seq_len)]
+        pos_sample_distances = [self.dist_fn(raw_output[i], raw_output[i+1]) * binary[i] for i in range(seq_len)]
 
         if not self.threshold is None:
             # do the thresholding
@@ -160,7 +160,10 @@ class RNNModel(nn.Module):
             if not self.bias is None:
                 x[i+1] = x[i+1] + self.bias[samples[i]]
 
-        loss = self.activation(x)
+        softmaxed = -torch.nn.functional.log_softmax(x, dim=0)[0]
+        softmax_mapped = softmaxed.view(seq_len, bsz) * binary
+        print(softmax_mapped, binary)
+        loss = softmax_mapped.mean()
         
         # apply regularizer for bias
         if self.regularizers.bias > 0:

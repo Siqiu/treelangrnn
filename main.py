@@ -224,7 +224,6 @@ def run(args):
             model.train()
             data = get_batch(train_data, i, args, seq_len=seq_len)
             binary = get_batch(binary_data, i, args, seq_len=seq_len)
-            print(data, binary)
 
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
@@ -236,7 +235,7 @@ def run(args):
             optimizer.zero_grad()
 
             #raw_loss = model.train_crossentropy(data, eos_tokens)
-            raw_loss, hidden = model(data, hidden)
+            raw_loss, hidden = model(data, binary, hidden)
 
             loss = raw_loss
             '''
