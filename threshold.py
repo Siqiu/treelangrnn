@@ -48,6 +48,7 @@ class DynamicThreshold(nn.Module):
 		print(r)
 		if len(d.size()) > 1:
 			r = r.view(d.size())
+		print(d.size())
 		r = r.view(d.size())
 
 		idxs = d < r
