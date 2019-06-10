@@ -30,7 +30,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
 
         # get the sentences
         j, sentences = i, [i]
-        while j < data.size(0) and len(sentences) < bsz:
+        while j < data.size(0) and len(sentences) < bsz+1:
             if int(data[j].data.cpu().numpy()) in eos_tokens:
                 sentences.append(j+1)
             j += 1
