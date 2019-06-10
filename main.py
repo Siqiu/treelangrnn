@@ -256,7 +256,7 @@ def run(args):
             total_loss += loss.data
             optimizer.param_groups[0]['lr'] = lr2
             if batch % args.log_interval == 0 and batch > 0:
-                cur_loss = total_loss.item() / args.log_interval
+                cur_loss = total_loss.item() / seq_len
                 elapsed = time.time() - start_time
                 print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
                         'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
