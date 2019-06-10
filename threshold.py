@@ -50,7 +50,7 @@ class DynamicThreshold(nn.Module):
 			r = r.view(d.size())
 
 		idxs = (d < r).view(d.size())
-		dnew = r * torch.exp(d - r)
+		dnew = (r * torch.exp(d - r)).view(d.size())
 		print(dnew.size(), d.size(), idxs.size(), r.size() )
 		dnew[idxs] = d[idxs]
 		return soft_threshold1(d, r, inf)
