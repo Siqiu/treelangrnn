@@ -220,7 +220,7 @@ def run(args):
             optimizer.zero_grad()
 
             #raw_loss = model.train_crossentropy(data, eos_tokens)
-            raw_loss, hidden = model(data, binary, hidden)
+            raw_loss = model(data, binary, hidden)
             avrg_loss = avrg_loss + raw_loss * seq_len
 
             loss = raw_loss
