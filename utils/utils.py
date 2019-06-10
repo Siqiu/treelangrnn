@@ -39,6 +39,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
 
         # find longest sentence
         lengths = [sentences[j+1] - sentences[j] for j in range(len(sentences)-1)]
+        print(lengths, bsz)
         longest = max(lengths)
         seq_lens.append(longest)
 
