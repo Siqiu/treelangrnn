@@ -45,14 +45,16 @@ class DynamicThreshold(nn.Module):
 
 		# get r from neural net
 		r = self.net(hiddens).pow(2)
+		if r.size(0) > 1: r = r.view(d.size())
 		print(r)
-		if r.size(0) > 1:
-			r = r.view(d.size())
 
-		idxs = d < r
-		dnew = r * torch.exp(d - r)
-		print(idxs)
-		print(d)
-		print(dnew.size(), d.size(), idxs.size(), r.size() )
-		dnew[idxs] = d[idxs]
-		return soft_threshold1(d, r, inf)
+		if len(d.size() > 1):
+			idxs = d < r
+			dnew = r * torch.exp(d - r)
+			dnew[idxs] = d[idxs]
+		else:
+			idxs = (d < r).view(d.size(0))
+			dnew = (r * torch.exp(d - r)).view(d.size(0))
+			dnew[idxs] = d[idxs]
+		
+		return return dnew
