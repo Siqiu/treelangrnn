@@ -35,9 +35,9 @@ class DynamicThreshold(nn.Module):
 		self.nlayers = nlayers
 
 		# build neural net here
-		linears = [nn.Linear(nin, nhid) if l == 0 else nn.Linear(nhid, nhid) for l in range(nlayers - 1)] + [nn.Linear(nin, 1) if nlayers == 1 else nn.Linear(nhid, 1)]
-		relus = [nn.ReLU() for l in range(nlayers)]
-		modules = [mod for pair in zip(linears, relus) for mod in pair]
+		linears = [nn.Linear(nin, nhid) if l == 0 else nn.Linear(nhid, nhid) for l in range(nlayers - 1)]
+		relus = [nn.ReLU() for l in range(nlayers - 1)]
+		modules = [mod for pair in zip(linears, relus) for mod in pair] + [nn.Linear(nin, 1) if nlayers == 1 else nn.Linear(nhid, 1)]
 
 		self.net = nn.Sequential(*modules)
 
