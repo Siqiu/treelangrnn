@@ -51,7 +51,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
         # initialize empty container
         batch = (torch.ones(longest, bsz) * (ntokens-1)).type(torch.LongTensor).cuda()
         for j in range(len(sentences)-1): 
-            batch[j][0:lengths[j]] = data[sentences[j]:sentences[j+1]]
+            batch[0:lengths[j], j] = data[sentences[j]:sentences[j+1]]
 
         print(batch_binary)
         print(batch)
