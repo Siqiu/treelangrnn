@@ -19,7 +19,7 @@ def soft_threshold2(d, r, inf=1e4):
 	# continuous at d = r 
 	# f(d,r) = d if d < r else r + exp(d-r) - 1
 	idxs = d < r
-	dnew = r + torch.exp(d - r) - 1
+	dnew = r + torch.exp(10*(d - r)) - 1
 	dnew[idxs] = d[idxs]
 	return torch.clamp(dnew, max=inf)
 
@@ -41,7 +41,7 @@ class DynamicThreshold(nn.Module):
 
 		self.net = nn.Sequential(*modules)
 
-	def forward(d, hiddens, inf=1e4):
+	def forward(self, d, hiddens, inf=1e4):
 
 		# get r from neural net
 		r = self.net(hiddens)

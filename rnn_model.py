@@ -14,7 +14,7 @@ from eucl_distance.distance import eucl_distance, dot_distance
 from poinc_distance.poinc_distance import poinc_distance
 from activation import log_softmax, log_sigmoid
 
-from threshold import hard_threshold, soft_threshold1, soft_threshold2
+from threshold import hard_threshold, soft_threshold1, soft_threshold2, DynamicThreshold
 
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
