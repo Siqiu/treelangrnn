@@ -134,18 +134,14 @@ def run(args):
     # get token frequencies and eos_tokens
     frequencies, eos_tokens = None, None
     if not args.uni_freq: frequencies = corpus.frequencies
-    if args.reinit_h: eos_tokens = corpus.reset_idxs
+    eos_tokens = corpus.reset_idxs
 
     # batchify
     eval_batch_size = 1
     test_batch_size = 1
-    print(corpus.dictionary)
-    if args.reinit_h:
-        ntokens = len(corpus.dictionary) + 1 if args.batch_size > 1 else len(corpus.dictionary)
-        train_data, binary_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)    
-    else:
-        ntokens = len(corpus.dictionary)
-        train_data = batchify(corpus.train, args.batch_size, args)
+    
+    ntokens = len(corpus.dictionary) + 1 if args.batch_size > 1 else len(corpus.dictionary)
+    train_data, binary_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)    
     val_data = batchify(corpus.valid, eval_batch_size, args)
     test_data = batchify(corpus.test, test_batch_size, args)
 
@@ -209,15 +205,7 @@ def run(args):
         hidden = model.init_hidden(args.batch_size)
         while i < train_data.size(0)-1:
 
-            if args.reinit_h:
-                seq_len = seq_lens[batch] - 1
-            else:
-                bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
-                # Prevent excessively small or negative sequence lengths
-                seq_len = max(5, int(np.random.normal(bptt, 5)))
-                # prevent negative sequence lengths
-                # There's a very small chance that it could select a very long sequence length resulting in OOM
-                # seq_len = min(seq_len, args.bptt + 10)
+            seq_len = seq_lens[batch] - 1
 
             lr2 = optimizer.param_groups[0]['lr']
             optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
@@ -227,10 +215,7 @@ def run(args):
 
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
-            reset_hidden = args.reinit_h
-            if reset_hidden:
-                hidden = model.init_hidden(args.batch_size)
-
+            hidden = model.init_hidden(args.batch_size)
             hidden = repackage_hidden(hidden)
             optimizer.zero_grad()
 

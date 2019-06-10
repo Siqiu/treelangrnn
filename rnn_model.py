@@ -86,8 +86,24 @@ class RNNModel(nn.Module):
         module.weight.data.uniform_(-initrange, initrange)
         return module
 
+    def _apply_threshold(self, d, h):
+        '''
+            d: pairwise distances between h and h_+
+            h: initial hidden states h
+        '''
+        if self.threshold_method == 'dynamic':
+            return self.threshold(d, h, self.inf)
+        else:
+            return self.threshold(d, self.radius, self.inf)
 
-    def forward(self, data, binary, hidden, return_output=False):
+    def _apply_temperature(self, d):
+        return self.beta * d
+
+    def _apply_bias(self, d, b):
+        return d + b
+
+
+    def forward(self, data, binary, hidden):
 
         # get batch size and sequence length
         seq_len, bsz = data.size()
@@ -102,29 +118,22 @@ class RNNModel(nn.Module):
 
         # initialize loss w/ positive terms
         # compute distances between consecutive hidden states
-        pos_sample_distances = [self.dist_fn(raw_output[i], raw_output[i+1]) * binary[i] for i in range(seq_len)]
+        d_pos = (raw_output[1:] - raw_output[:-1]).norm(dim=2).pow(2)
 
         if not self.threshold is None:
-            # do the thresholding
-            if self.threshold_method == 'dynamic':
-                pos_sample_distances = [self.threshold(d, h, self.inf) for h,d in zip(raw_output, pos_sample_distances)]
-            else:
-                pos_sample_distances = [self.threshold(d, self.radius, self.inf) for d in pos_sample_distances]
-        
+            d_pos = self._apply_threshold(d_pos, raw_output[:-1])
 
-        # apply temperature
-        pos_sample_distances = [-self.beta * d for d in pos_sample_distances]
+        d_pos = self._apply_temperature(d_pos)
+
         if not self.bias is None:
-            # add bias if necessary
-            pos_sample_distances = [pos + self.bias[data[i]] for i, pos in enumerate(pos_sample_distances)]
+            d_pos = self._apply_bias(d_pos, self.bias[data])
 
-        new_hidden = raw_output[-1].view(1, bsz, -1)            # new hidden is last output
-        raw_output = raw_output[:-1].view(seq_len*bsz, -1)      # hiddens used for negative sampling are all except last
+        # hiddens used for negative sampling are all except last
+        raw_output = raw_output[:-1].view(seq_len*bsz, -1)
 
         # x stores the positive samples at index 0 and the negative ones a 1:nsamples+1
         x = torch.zeros(1 + self.nsamples, seq_len*bsz).cuda()
-        for i in range(seq_len):
-            x[0][i*bsz:(i+1)*bsz] = pos_sample_distances[i]
+        x[0] = -d_pos.view(seq_len * bsz)
         
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
@@ -149,16 +158,17 @@ class RNNModel(nn.Module):
             output = output[0]
 
             # compute loss term
-            distance = self.dist_fn(raw_output,output)
-        
-            if not self.threshold is None:
-                distance = self.threshold(distance, self.radius, self.inf)
-            else:
-                distance = torch.clamp(distance, max=self.inf)
+            d_neg = self.dist_fn(raw_output, output)
 
-            x[i+1] = -self.beta * distance
+            if not self.threshold is None:
+                d_neg = self._apply_threshold(d_neg, raw_output)
+
+            d_neg = self._apply_temperature(d_neg)
+
             if not self.bias is None:
-                x[i+1] = x[i+1] + self.bias[samples[i]]
+                d_neg = self._apply_bias(d_neg, self.bias[samples[i]])
+        
+            x[i+1] = -d_neg
 
         softmaxed = -torch.nn.functional.log_softmax(x, dim=0)[0]
         softmax_mapped = softmaxed.view(seq_len, bsz) * binary
@@ -168,7 +178,7 @@ class RNNModel(nn.Module):
         if self.regularizers.bias > 0:
             loss = loss + (0 if self.bias is None else self.regularizers.bias * torch.norm(self.bias).pow(2))
 
-        return loss, new_hidden
+        return loss
 
 
     def evaluate(self, data, eos_tokens=None, dump_hiddens=False):
@@ -196,11 +206,14 @@ class RNNModel(nn.Module):
 
             distance = self.dist_fn(hidden[0], output)
             if not self.threshold is None:
-                distance = self.threshold(distance, self.radius, self.inf)
-            else:
-                distance = torch.clamp(distance, max=self.inf)
+                distance = self._apply_threshold(distance, hidden[0])
+
+            distance = self._apply_temperature(distance)
+
+            if not self.bias is None:
+                distance = self._apply_bias(distance, self.bias)
             
-            softmaxed = torch.nn.functional.log_softmax(-self.beta * distance.view(-1) + (0. if self.bias is None else self.bias), dim=0)
+            softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
             raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
