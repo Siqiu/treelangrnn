@@ -142,7 +142,7 @@ def run(args):
     print(corpus.dictionary)
     if args.reinit_h:
         ntokens = len(corpus.dictionary) + 1 if args.batch_size > 1 else len(corpus.dictionary)
-        train_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)    
+        train_data, binary_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)    
     else:
         ntokens = len(corpus.dictionary)
         train_data = batchify(corpus.train, args.batch_size, args)
@@ -223,6 +223,8 @@ def run(args):
             optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
             model.train()
             data = get_batch(train_data, i, args, seq_len=seq_len)
+            binary = get_batch(binary_data, i, args, seq_len=seq_len)
+            print(data, binary)
 
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.

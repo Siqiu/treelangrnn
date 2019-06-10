@@ -53,11 +53,10 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
         for j in range(len(sentences)-1): 
             batch[0:lengths[j], j] = data[sentences[j]:sentences[j+1]]
 
-        print(batch_binary)
-        print(batch)
-        batches.append(torch.t(batch))
+        batch_binaries.append(batch_binary)
+        batches.append(batch)
 
-    return torch.cat(batches, 0), batch_binary, seq_lens
+    return torch.cat(batches, 0), torch.cat(batch_binaries, 0), seq_lens
 
 
 def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
