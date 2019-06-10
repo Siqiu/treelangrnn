@@ -162,7 +162,6 @@ class RNNModel(nn.Module):
 
         softmaxed = -torch.nn.functional.log_softmax(x, dim=0)[0]
         softmax_mapped = softmaxed.view(seq_len, bsz) * binary
-        print(softmax_mapped, binary)
         loss = softmax_mapped.mean()
         
         # apply regularizer for bias
