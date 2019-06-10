@@ -46,9 +46,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
         # initialize batch binary
         batch_binary = (torch.zeros(longest, bsz)).type(torch.FloatTensor).cuda()
         for k,l in enumerate(lengths):
-            batch_binary[:l,k] = 1.
-
-        
+            batch_binary[:l-1,k] = 1.
 
         # initialize empty container
         batch = (torch.ones(longest, bsz) * (ntokens-1)).type(torch.LongTensor).cuda()
