@@ -24,7 +24,8 @@ def batchify(data, bsz, args):
 
 def batchify_padded(data, bsz, args, ntokens, eos_tokens):
 
-    i, batches, seq_lens = 0, [], []
+    i, seq_lens = 0, [],
+    batches, batch_binaries = [], []
     while i < data.size(0):
 
         # get the sentences
@@ -40,7 +41,13 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
         lengths = [sentences[j+1] - sentences[j] for j in range(len(sentences)-1)]
         longest = max(lengths)
         seq_lens.append(longest)
-        #print(seq_lens)
+
+        # initialize batch binary
+        batch_binary = (torch.zeros(bsz, longest)).type(torch.FloatTensor).cuda()
+        for k,l in lengths:
+            batch_binary[:l,k] = 1.
+
+        print(batch_binary)
 
         # initialize empty container
         batch = (torch.ones(bsz, longest) * (ntokens-1)).type(torch.LongTensor).cuda()
@@ -49,7 +56,7 @@ def batchify_padded(data, bsz, args, ntokens, eos_tokens):
 
         batches.append(torch.t(batch))
 
-    return torch.cat(batches, 0), seq_lens
+    return torch.cat(batches, 0), batch_binary, seq_lens
 
 
 def get_batch(source, i, args, seq_len=None, evaluation=False, eos_tokens=None):
