@@ -33,7 +33,12 @@ class RNNModel(nn.Module):
         self.encoder = nn.Embedding(ntoken, ninp)
         self.encoder = self.init_weights(self.encoder, initrange)
 
-        self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)#, nonlinearity='relu')
+        self.mode = mode
+        if self.mode == 'rnn':
+            self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)#, nonlinearity='relu')
+        elif self.mode =='gru':
+            self.rnn = torch.nn.GRU(ninp, nhid, 1, dropout=0)
+
         self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=dropouts.wdrop)
         print(self.rnn)
 
@@ -80,7 +85,7 @@ class RNNModel(nn.Module):
 
         self.radius = threshold.radius
         self.inf = 1e4
-        self.mode = mode
+        
       
 
     def init_weights(self, module, initrange=0.1):
