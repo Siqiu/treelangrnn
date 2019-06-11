@@ -93,6 +93,8 @@ parser.add_argument('--threshold_radius', type=float, default=1.)
 parser.add_argument('--threshold_nlayers', type=int, default=3)
 parser.add_argument('--threshold_nhid', type=int, default=1000)
 
+parser.add_argument('--mode', type=str, default='rnn')
+
 args = parser.parse_args()
 args.tied = True
 

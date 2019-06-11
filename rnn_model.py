@@ -19,7 +19,7 @@ from threshold import hard_threshold, soft_threshold1, soft_threshold2, DynamicT
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, beta=10, bias=True, dist_fn='eucl', sampling=None, dropouts=None, regularizers=None, threshold=None):
+    def __init__(self, ntoken, ninp, nhid, beta=10, bias=True, dist_fn='eucl', mode='rnn', sampling=None, dropouts=None, regularizers=None, threshold=None):
 
         initrange = 0.1
         super(RNNModel, self).__init__()
@@ -80,6 +80,7 @@ class RNNModel(nn.Module):
 
         self.radius = threshold.radius
         self.inf = 1e4
+        self.mode = mode
       
 
     def init_weights(self, module, initrange=0.1):
@@ -104,6 +105,20 @@ class RNNModel(nn.Module):
     def _apply_bias(self, d, b):
         return d + b
 
+    def _forward(self, words_times_W, hiddens_times_U, hidden=None):
+
+        tanh, sigmoid = nn.Tanh(), nn.Sigmoid()
+
+        if self.mode == 'rnn':
+            output = tanh(words_times_W + hiddens_times_U)
+
+        elif self.mode == 'gru':
+            _ir = sigmoid(words_times_W[:,:self.nhid] + hiddens_times_U[:,:self.nhid])
+            _iz = sigmoid(words_times_W[:,self.nhid:2*self.nhid] + hiddens_times_U[:,self.nhid:2*self.nhid])
+            _in = tanh(words_times_W[:,2*self.nhid:] + _ir * hiddens_times_U[:,2*self.nhid:])
+            output = (1 - _iz) * _in + _iz * hidden
+
+        return output
 
     def forward(self, data, binary, hidden):
 
@@ -155,7 +170,7 @@ class RNNModel(nn.Module):
         for i in range(self.nsamples):
 
             # compute output of negative samples
-            output = self.nonlinearity(samples_times_W[i] + hiddens_times_U)
+            output = self._forward(samples_times_W[i], hiddens_times_U, raw_output)
             output = self.lockdrop(output.view(1, output.size(0), -1), self.dropout)
             output = output[0]
 
@@ -202,7 +217,7 @@ class RNNModel(nn.Module):
         while i < data.size(0):
 
             hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
-            output = self.nonlinearity(all_words_times_W + hidden_times_U)
+            output = self._forward(all_words_times_W, hidden_times_U, hidden[0].repeat(self.ntoken, 1))
 
             if dump_hiddens: hiddens.append(output[data[i]].data.cpu().numpy())
 
