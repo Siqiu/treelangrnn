@@ -91,7 +91,7 @@ parser.add_argument('--threshold_method', type=str, default='hard',
                     help='method in [none, hard, soft1, soft2, dynamic]')
 parser.add_argument('--threshold_radius', type=float, default=1.)
 parser.add_argument('--threshold_nlayers', type=int, default=3)
-parser.add_argument('--threshold_nhid', type=int, default=4)
+parser.add_argument('--threshold_nhid', type=int, default=1000)
 
 args = parser.parse_args()
 args.tied = True
@@ -197,6 +197,7 @@ def run(args):
 
 
     def train():
+
         # Turn on training mode which enables dropout.
         total_loss, avrg_loss = 0, 0
         start_time = time.time()

@@ -92,7 +92,9 @@ class RNNModel(nn.Module):
             h: initial hidden states h
         '''
         if self.threshold_method == 'dynamic':
-            return self.threshold(d, h, self.inf)
+            d, r = self.threshold(d, h, self.inf)
+            print(r.mean(), d.mean())
+            return d
         else:
             return self.threshold(d, self.radius, self.inf)
 
