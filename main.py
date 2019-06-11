@@ -156,7 +156,7 @@ def run(args):
     regularizers = Regularizers(args.bias_reg)
     threshold = Threshold(args.threshold_method, args.threshold_radius, args.threshold_nlayers, args.threshold_nhid) if not args.threshold_method == 'none' else None
 
-    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, sampling, dropouts, regularizers, threshold)
+    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.mode, sampling, dropouts, regularizers, threshold)
 
     ###
     if args.resume:
