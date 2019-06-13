@@ -99,7 +99,7 @@ class RNNModel(nn.Module):
         '''
         if self.threshold_method == 'dynamic':
             d, r = self.threshold(d, h, self.inf)
-            print(r.mean(), d.mean())
+            #print(r.mean(), d.mean())
             return d
         else:
             return self.threshold(d, self.radius, self.inf)

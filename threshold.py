@@ -56,4 +56,4 @@ class DynamicThreshold(nn.Module):
 			dnew = (r * torch.exp(d - r)).view(d.size(0))
 			dnew[idxs] = d[idxs]
 		
-		return dnew, r*20
+		return dnew, 5*r

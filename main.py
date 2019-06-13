@@ -90,8 +90,8 @@ parser.add_argument('--dump_entropy', type=str, default='entropy_')
 parser.add_argument('--threshold_method', type=str, default='hard',
                     help='method in [none, hard, soft1, soft2, dynamic]')
 parser.add_argument('--threshold_radius', type=float, default=1.)
-parser.add_argument('--threshold_nlayers', type=int, default=3)
-parser.add_argument('--threshold_nhid', type=int, default=1000)
+parser.add_argument('--threshold_nlayers', type=int, default=5)
+parser.add_argument('--threshold_nhid', type=int, default=4)
 
 parser.add_argument('--mode', type=str, default='rnn')
 
@@ -275,8 +275,8 @@ def run(args):
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train_loss = train()
-            _, s, _= np.linalg.svd(model.rnn.module.weight_hh_l0.cpu().detach().numpy())
-            print(s[0])
+            #_, s, _= np.linalg.svd(model.rnn.module.weight_hh_l0.cpu().detach().numpy())
+            #print(model.rnn.module.weight_hh_l0, model.rnn.module.weight_ih_l0)
             #dump(model.decoder.bias.cpu().detach().numpy(), 'bias_' + str(epoch) +'.out')
             
             # skip to beginning if not in evaluation mode
