@@ -33,7 +33,7 @@ class DynamicThreshold(nn.Module):
 		self.nin = nin
 		self.nhid = nhid
 		self.nlayers = nlayers
-                self.temp =) temp
+		self.temp = temp
 
 		# build neural net here
 		linears = [nn.Linear(nin, nhid) if l == 0 else nn.Linear(nhid, nhid) for l in range(nlayers - 1)]
