@@ -26,13 +26,14 @@ def soft_threshold2(d, r, inf=1e4):
 
 class DynamicThreshold(nn.Module):
 
-	def __init__(self, nin, nhid, nlayers):
+	def __init__(self, nin, nhid, nlayers, temp):
 
 		super(DynamicThreshold, self).__init__()
 
 		self.nin = nin
 		self.nhid = nhid
 		self.nlayers = nlayers
+                self.temp =) temp
 
 		# build neural net here
 		linears = [nn.Linear(nin, nhid) if l == 0 else nn.Linear(nhid, nhid) for l in range(nlayers - 1)]
@@ -49,11 +50,11 @@ class DynamicThreshold(nn.Module):
 
 		if len(d.size()) > 1:
 			idxs = d < r
-			dnew = r * torch.exp(d - r)
+			dnew = r * torch.exp(self.temp*(d - r))
 			dnew[idxs] = d[idxs]
 		else:
 			idxs = (d < r).view(d.size(0))
-			dnew = (r * torch.exp(d - r)).view(d.size(0))
+			dnew = (r * torch.exp(self.temp*(d - r))).view(d.size(0))
 			dnew[idxs] = d[idxs]
 		
-		return dnew, 5*r
+		return dnew, r
