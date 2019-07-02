@@ -15,7 +15,7 @@ from collections import namedtuple
 Sampling = namedtuple("Sampling", "nsamples frequencies")
 Dropouts = namedtuple("Dropouts", "dropout dropouth dropouti dropoute wdrop")
 Regularizers = namedtuple("Regularizers", "bias")
-Threshold = namedtuple("Threshold", "method radius nlayers nhid temp")
+Threshold = namedtuple("Threshold", "method radius nlayers nhid temp mode")
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
@@ -89,6 +89,8 @@ parser.add_argument('--dump_entropy', type=str, default='entropy_')
 
 parser.add_argument('--threshold_method', type=str, default='hard',
                     help='method in [none, hard, soft1, soft2, dynamic]')
+parser.add_argument('--threshold_mode', type=str, default='none',
+                    help='threshold mode in [none, both, train, eval]')
 parser.add_argument('--threshold_radius', type=float, default=1.)
 parser.add_argument('--threshold_nlayers', type=int, default=8)
 parser.add_argument('--threshold_nhid', type=int, default=1150)
@@ -155,7 +157,7 @@ def run(args):
     sampling = Sampling(args.nsamples, frequencies)
     dropouts = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
     regularizers = Regularizers(args.bias_reg)
-    threshold = Threshold(args.threshold_method, args.threshold_radius, args.threshold_nlayers, args.threshold_nhid, args.threshold_temp) if not args.threshold_method == 'none' else None
+    threshold = Threshold(args.threshold_method, args.threshold_radius, args.threshold_nlayers, args.threshold_nhid, args.threshold_temp, args.threshold_mode) if not args.threshold_method == 'none' else None
 
     model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.mode, sampling, dropouts, regularizers, threshold)
 

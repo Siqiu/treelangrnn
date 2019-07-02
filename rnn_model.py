@@ -83,6 +83,8 @@ class RNNModel(nn.Module):
         elif threshold.method == 'soft2': self.threshold = soft_threshold2
         elif threshold.method == 'dynamic': self.threshold = DynamicThreshold(nhid, threshold.nhid, threshold.nlayers, threshold.temp)
         else: self.threshold = None
+
+        self.threshold_mode = threshold.mode
         self.threshold_method = threshold.method
 
         self.radius = threshold.radius
@@ -99,6 +101,14 @@ class RNNModel(nn.Module):
             d: pairwise distances between h and h_+
             h: initial hidden states h
         '''
+
+        if self.threshold_mode == 'none':
+            return d
+        if self.threshold_mode == 'train' and not self.training:
+            return d
+        if self.threshold_mode == 'eval' and self.training:
+            return d
+
         if self.threshold_method == 'dynamic':
             d, r = self.threshold(d, h, self.inf)
             return d
@@ -144,7 +154,7 @@ class RNNModel(nn.Module):
         d_pos = (raw_output[1:] - raw_output[:-1]).norm(dim=2).pow(2)
 
         if not self.threshold is None:
-            pass#d_pos = self._apply_threshold(d_pos, raw_output[:-1])
+            d_pos = self._apply_threshold(d_pos, raw_output[:-1])
 
         d_pos = self._apply_temperature(d_pos)
 
@@ -184,7 +194,7 @@ class RNNModel(nn.Module):
             d_neg = self.dist_fn(raw_output, output)
 
             if not self.threshold is None:
-                pass#d_neg = self._apply_threshold(d_neg, raw_output)
+                d_neg = self._apply_threshold(d_neg, raw_output)
 
             d_neg = self._apply_temperature(d_neg)
 
