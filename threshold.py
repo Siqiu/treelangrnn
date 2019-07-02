@@ -42,7 +42,7 @@ class DynamicThreshold(nn.Module):
 
 		self.net = nn.Sequential(*modules)
 
-	def forward(self, d, hiddens, inf=1e4):
+	def forward(self, d, hiddens, inf=1e8):
 
 		# get r from neural net
 		r = self.net(hiddens).pow(2)
@@ -57,4 +57,4 @@ class DynamicThreshold(nn.Module):
 			dnew = (r * torch.exp(self.temp*(d - r))).view(d.size(0))
 			dnew[idxs] = d[idxs]
 		
-		return dnew, r
+		return torch.clamp(dnew, max=inf), r

@@ -23,6 +23,7 @@ class RNNModel(nn.Module):
 
         initrange = 0.1
         super(RNNModel, self).__init__()
+        ntoken = ntoken
 
         # initialize dropouts
         self.lockdrop = LockedDropout()
@@ -68,6 +69,7 @@ class RNNModel(nn.Module):
         self.beta = beta        # temperature
 
         self.nsamples = sampling.nsamples
+        print(sampling.frequencies)
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if sampling.frequencies is None else sampling.frequencies)
 
         # set distance function
@@ -79,12 +81,12 @@ class RNNModel(nn.Module):
         if threshold.method == 'hard': self.threshold = hard_threshold
         elif threshold.method == 'soft1': self.threshold = soft_threshold1
         elif threshold.method == 'soft2': self.threshold = soft_threshold2
-        elif threshold.method == 'dynamic': self.threshold = DynamicThreshold(nhid, threshold.nhid, threshold.nlayers)
+        elif threshold.method == 'dynamic': self.threshold = DynamicThreshold(nhid, threshold.nhid, threshold.nlayers, threshold.temp)
         else: self.threshold = None
         self.threshold_method = threshold.method
 
         self.radius = threshold.radius
-        self.inf = 1e4
+        self.inf = 1e5
         
       
 
@@ -99,7 +101,6 @@ class RNNModel(nn.Module):
         '''
         if self.threshold_method == 'dynamic':
             d, r = self.threshold(d, h, self.inf)
-            #print(r.mean(), d.mean())
             return d
         else:
             return self.threshold(d, self.radius, self.inf)
@@ -143,7 +144,7 @@ class RNNModel(nn.Module):
         d_pos = (raw_output[1:] - raw_output[:-1]).norm(dim=2).pow(2)
 
         if not self.threshold is None:
-            d_pos = self._apply_threshold(d_pos, raw_output[:-1])
+            pass#d_pos = self._apply_threshold(d_pos, raw_output[:-1])
 
         d_pos = self._apply_temperature(d_pos)
 
@@ -183,7 +184,7 @@ class RNNModel(nn.Module):
             d_neg = self.dist_fn(raw_output, output)
 
             if not self.threshold is None:
-                d_neg = self._apply_threshold(d_neg, raw_output)
+                pass#d_neg = self._apply_threshold(d_neg, raw_output)
 
             d_neg = self._apply_temperature(d_neg)
 
@@ -234,7 +235,7 @@ class RNNModel(nn.Module):
 
             if not self.bias is None:
                 distance = self._apply_bias(distance, self.bias)
-            
+        
             softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
             raw_loss = -softmaxed[data[i]].item()
 

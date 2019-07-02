@@ -15,7 +15,7 @@ from collections import namedtuple
 Sampling = namedtuple("Sampling", "nsamples frequencies")
 Dropouts = namedtuple("Dropouts", "dropout dropouth dropouti dropoute wdrop")
 Regularizers = namedtuple("Regularizers", "bias")
-Threshold = namedtuple("Threshold", "method radius nlayers nhid")
+Threshold = namedtuple("Threshold", "method radius nlayers nhid temp")
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
@@ -43,7 +43,7 @@ parser.add_argument('--dropouti', type=float, default=0.,
 parser.add_argument('--dropoute', type=float, default=0.,
                     help='dropout to remove words from embedding layer (0 = no dropout)')
 parser.add_argument('--wdrop', type=float, default=0.)
-parser.add_argument('--seed', type=int, default=1111,
+parser.add_argument('--seed', type=int, default=141,
                     help='random seed')
 parser.add_argument('--nonmono', type=int, default=5,
                     help='random seed')
@@ -90,8 +90,9 @@ parser.add_argument('--dump_entropy', type=str, default='entropy_')
 parser.add_argument('--threshold_method', type=str, default='hard',
                     help='method in [none, hard, soft1, soft2, dynamic]')
 parser.add_argument('--threshold_radius', type=float, default=1.)
-parser.add_argument('--threshold_nlayers', type=int, default=5)
-parser.add_argument('--threshold_nhid', type=int, default=4)
+parser.add_argument('--threshold_nlayers', type=int, default=8)
+parser.add_argument('--threshold_nhid', type=int, default=1150)
+parser.add_argument('--threshold_temp', type=float, default=1)
 
 parser.add_argument('--mode', type=str, default='rnn')
 
@@ -141,7 +142,7 @@ def run(args):
     # batchify
     eval_batch_size = 1
     test_batch_size = 1
-    
+
     ntokens = len(corpus.dictionary) + 1 if args.batch_size > 1 else len(corpus.dictionary)
     train_data, binary_data, seq_lens = batchify_padded(corpus.train, args.batch_size, args, ntokens, eos_tokens)    
     val_data = batchify(corpus.valid, eval_batch_size, args)
@@ -154,7 +155,7 @@ def run(args):
     sampling = Sampling(args.nsamples, frequencies)
     dropouts = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
     regularizers = Regularizers(args.bias_reg)
-    threshold = Threshold(args.threshold_method, args.threshold_radius, args.threshold_nlayers, args.threshold_nhid) if not args.threshold_method == 'none' else None
+    threshold = Threshold(args.threshold_method, args.threshold_radius, args.threshold_nlayers, args.threshold_nhid, args.threshold_temp) if not args.threshold_method == 'none' else None
 
     model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.mode, sampling, dropouts, regularizers, threshold)
 
@@ -190,6 +191,8 @@ def run(args):
             loss, entropy = model.evaluate(data_source, eos_tokens)
         
         if args.dump_words:
+            W = model.rnn.module.weight_ih_l0.detach()
+            dump_words(torch.nn.functional.linear(model.encoder.weight.detach(), W).detach().cpu().numpy(), 'words_xW_' + str(epoch))
             dump_words(model.encoder.weight.detach().cpu().numpy(), 'words_' + str(epoch))
 
         if not args.dump_entropy is None:
@@ -264,6 +267,8 @@ def run(args):
     valid_loss = []
     stored_loss = 100000000
 
+    W_norm, U_norm = [], []
+
     # At any point you can hit Ctrl + C to break out of training early.
     try:
         optimizer = None
@@ -275,8 +280,19 @@ def run(args):
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train_loss = train()
+            
+            # look at singular values of [W, U]
+            #W = model.rnn.module.weight_ih_l0.detach()
+            #U = model.rnn.module.weight_hh_l0.detach()
+            #u, s, v = torch.svd(torch.cat([W, U], 1))
+            #print(s)
+
             #_, s, _= np.linalg.svd(model.rnn.module.weight_hh_l0.cpu().detach().numpy())
-            #print(model.rnn.module.weight_hh_l0, model.rnn.module.weight_ih_l0)
+            W_norm.append(model.rnn.module.weight_ih_l0.norm())
+            U_norm.append(model.rnn.module.weight_hh_l0.norm())
+
+            print(W_norm[-1])
+            print(U_norm[-1])
             #dump(model.decoder.bias.cpu().detach().numpy(), 'bias_' + str(epoch) +'.out')
             
             # skip to beginning if not in evaluation mode
@@ -352,6 +368,9 @@ def run(args):
         test_loss, math.exp(test_loss), test_loss / math.log(2)))
     print('=' * 89)
 
+    dump(np.array(W_norm), 'W_norm')
+    dump(np.array(U_norm), 'U_norm')
+
     return np.array(valid_loss), test_loss
 
 '''
@@ -363,7 +382,7 @@ valid_loss, test_loss = run(args)
 #valid_loss, test_loss = run(args)
 '''
 results = []
-l = [2. * (i+1) for i in range(10)]
+l = [1. * (i+1) for i in range(4)]
 for li in l:
     args.dump_entropy = None
     args.dump_valloss = None
@@ -376,21 +395,25 @@ for result in results:
     print(result)
 '''
 '''
-l = [[('adam', 1e-4), ('adam', 1e-3), ('sgd', 1e-4), ('sgd', 1e-3), ('sgd', 1e-2), ('sgd', 1e-1), ('sgd', 1) , ('sgd', 10)],
+l = [[('adam', 1e-3)],
+    [4],
+    [4, 8],
     [1, 10],
-    ['eucl']]
+    [1, 10]]
 args.dump_entropy = None
 args.dump_valloss = None
 import itertools
 L = list(itertools.product(*l))
 results = []
-for (opt, lr), temp, dist_fn in L:
+for (opt, lr), nlayers, nhid, temp, ttemp in L:
 
-    settings = [opt, lr, temp, dist_fn]
+    settings = [opt, lr, nlayers, nhid, temp, ttemp]
     args.optimizer = opt
     args.lr = lr
     args.temperature = temp
-    args.dist_fn = dist_fn
+    args.threshold_temp = ttemp
+    args.threshold_nlayers = nlayers
+    args.threshold_nhid = nhid
 
     valid_loss, test_loss = run(args)
     results.append(settings + [valid_loss])
