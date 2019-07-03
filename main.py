@@ -87,13 +87,13 @@ parser.add_argument('--dump_words', action='store_true')
 parser.add_argument('--dump_valloss', type=str, default='valloss')
 parser.add_argument('--dump_entropy', type=str, default='entropy_')
 
-parser.add_argument('--threshold_method', type=str, default='hard',
+parser.add_argument('--threshold_method', type=str, default='dynamic',
                     help='method in [none, hard, soft1, soft2, dynamic]')
-parser.add_argument('--threshold_mode', type=str, default='none',
+parser.add_argument('--threshold_mode', type=str, default='both',
                     help='threshold mode in [none, both, train, eval]')
-parser.add_argument('--threshold_radius', type=float, default=1.)
+parser.add_argument('--threshold_radius', type=float, default=10.)
 parser.add_argument('--threshold_nlayers', type=int, default=8)
-parser.add_argument('--threshold_nhid', type=int, default=1150)
+parser.add_argument('--threshold_nhid', type=int, default=150)
 parser.add_argument('--threshold_temp', type=float, default=1)
 
 parser.add_argument('--mode', type=str, default='rnn')
@@ -384,7 +384,7 @@ valid_loss, test_loss = run(args)
 #valid_loss, test_loss = run(args)
 '''
 results = []
-l = [1. * (i+1) for i in range(4)]
+l = [1, 2, 3, 4, 5]
 for li in l:
     args.dump_entropy = None
     args.dump_valloss = None
