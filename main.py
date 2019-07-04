@@ -15,7 +15,6 @@ from collections import namedtuple
 Sampling = namedtuple("Sampling", "nsamples frequencies")
 Dropouts = namedtuple("Dropouts", "dropout dropouth dropouti dropoute wdrop")
 Regularizers = namedtuple("Regularizers", "bias")
-Threshold = namedtuple("Threshold", "method radius nlayers nhid temp mode")
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
@@ -87,15 +86,6 @@ parser.add_argument('--dump_words', action='store_true')
 parser.add_argument('--dump_valloss', type=str, default='valloss')
 parser.add_argument('--dump_entropy', type=str, default='entropy_')
 
-parser.add_argument('--threshold_method', type=str, default='dynamic',
-                    help='method in [none, hard, soft1, soft2, dynamic]')
-parser.add_argument('--threshold_mode', type=str, default='both',
-                    help='threshold mode in [none, both, train, eval]')
-parser.add_argument('--threshold_radius', type=float, default=10.)
-parser.add_argument('--threshold_nlayers', type=int, default=8)
-parser.add_argument('--threshold_nhid', type=int, default=150)
-parser.add_argument('--threshold_temp', type=float, default=1)
-
 parser.add_argument('--mode', type=str, default='rnn')
 
 args = parser.parse_args()
@@ -154,12 +144,13 @@ def run(args):
     # Build the model
     ###############################################################################
 
-    sampling = Sampling(args.nsamples, frequencies)
-    dropouts = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
-    regularizers = Regularizers(args.bias_reg)
-    threshold = Threshold(args.threshold_method, args.threshold_radius, args.threshold_nlayers, args.threshold_nhid, args.threshold_temp, args.threshold_mode) if not args.threshold_method == 'none' else None
+    sample_config = Sampling(args.nsamples, frequencies)
+    dropout_config = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
+    regularizer_config = Regularizers(args.bias_reg)
+    from config.thresholdconfig import *    # get treshold_config
 
-    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.mode, sampling, dropouts, regularizers, threshold)
+    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.mode, sample_config,
+                    dropout_config, regularizer_config, threshold_config)
 
     ###
     if args.resume:
@@ -276,7 +267,11 @@ def run(args):
         optimizer = None
         # Ensure the optimizer is optimizing params, which includes both the model's weights as well as the criterion's weight (i.e. Adaptive Softmax)
         if args.optimizer == 'sgd':
-            optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
+            if threshold_config.lr > 0. and threshold.method == 'dynamic':
+                optimizer = torch.optim.SGD([{"params": list(model.rnn.parameters()) + list(model.encoder.rnn.parameters()) + list(model.decoder.parameters)},
+                                            {"params": list(model.threshold.parameters()), "lr":threshold_config.lr}], lr=args.lr, weight_decay=args.weight_decay)
+            else:
+                optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
         if args.optimizer == 'adam':
             optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
         for epoch in range(1, args.epochs+1):

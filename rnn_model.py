@@ -87,7 +87,9 @@ class RNNModel(nn.Module):
         self.threshold_mode = threshold.mode
         self.threshold_method = threshold.method
 
-        self.radius = threshold.radius
+        self.max_radius = threshold.max_radius
+        self.min_radius = threshold.min_radius
+        self.decrease_radius = threshold.decrease_radius
         self.inf = 1e5
         
       
@@ -113,7 +115,7 @@ class RNNModel(nn.Module):
             d, r = self.threshold(d, h, self.inf)
             return d
         else:
-            return self.threshold(d, self.radius, self.inf)
+            return self.threshold(d, self.max_radius, self.inf)
 
     def _apply_temperature(self, d):
         return self.beta * d
@@ -264,6 +266,9 @@ class RNNModel(nn.Module):
             i = i + 1
 
         all_hiddens = all_hiddens if not eos_tokens is None else hiddens
+
+        if self.decrease_radius > 0:
+            self.max_radius = max(self.min_radius, self.max_radius * 0.95)
         
         if dump_hiddens:
             return total_loss, np.array(entropy), all_hiddens
