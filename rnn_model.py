@@ -10,92 +10,92 @@ from sample import NegativeSampler
 
 from utils.utils import repackage_hidden
 
-from eucl_distance.distance import eucl_distance, dot_distance
-from poinc_distance.poinc_distance import poinc_distance
-from activation import log_softmax, log_sigmoid
-
+from eucl_distance.distance import eucl_distance
+from rnncells import LinearRNNCell, ELURNNCell, DExpRNNCell
 from threshold import hard_threshold, soft_threshold1, soft_threshold2, DynamicThreshold
 
 class RNNModel(nn.Module):
     """Container module with an encoder and a recurrent module."""
 
-    def __init__(self, ntoken, ninp, nhid, beta=10, bias=True, dist_fn='eucl', mode='rnn', sampling=None, dropouts=None, regularizers=None, threshold=None):
+    def __init__(self, ntoken, rnn_config, reg_config, sample_config, threshold_config):
 
         initrange = 0.1
         super(RNNModel, self).__init__()
-        ntoken = ntoken
+        self.ntoken = ntoken
 
-        # initialize dropouts
-        self.lockdrop = LockedDropout()
-        self.idrop = nn.Dropout(dropouts.dropouti)
-        self.hdrop = nn.Dropout(dropouts.dropouth)
-        self.drop = nn.Dropout(dropouts.dropout)
-       
-        self.encoder = nn.Embedding(ntoken, ninp)
-        self.encoder = self.init_weights(self.encoder, initrange)
+        # rnn configs
+        self.cell_type = rnn_config.cell_type   # cell_type in [rnn, linear_rnn, relu_rnn, elu_rnn, dexp_rnn, gru]
+        self.ninp = rnn_config.emsize
+        self.nhid = rnn_config.nhid
+        self.beta = rnn_config.temp
 
-        self.mode = mode
-        if self.mode == 'rnn':
-            self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)#, nonlinearity='relu')
-        elif self.mode =='gru':
-            self.rnn = torch.nn.GRU(ninp, nhid, 1, dropout=0)
+        # regularization configs
+        self.dropout = reg_config.dropout
+        self.dropouth = reg_config.dropouth
+        self.dropouti = reg_config.dropouti
+        self.dropoute = reg_config.dropoute
+        self.wdrop = reg_config.wdrop
 
-        self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=dropouts.wdrop)
-        print(self.rnn)
+        # sample config
+        self.nsamples = sample_config.nsamples
+        self.frequencies = sample_config.frequencies
 
-        # initialize bias
-        if bias:
-            self.decoder = nn.Linear(nhid, ntoken)
-            self.decoder = self.init_weights(self.decoder, 0.1)
-            self.bias = self.decoder.bias
-        else: self.bias = None
+        # threshold config
+        self.threshold_func = threshold_config.func
+        self.threshold_mode = threshold_config.mode
+        self.threshold_temp = threshold_config.temp
+        self.threshold_max_r = threshold_config.max_radius
+        self.threshold_min_r = threshold_config.min_radius
+        self.threshold_decr = threshold_config.decrease_radius
+        self.threshold_nlayers = threshold_config.nlayers
+        self.threshold_nhid = threshold_config.nhid
 
-        # store input arguments
-        self.ninp = ninp
-        self.nhid = nhid
-        self.dropout = dropouts.dropout
-        self.dropouti = dropouts.dropouti
-        self.dropouth = dropouts.dropouth
-        self.dropoute = dropouts.dropoute
-        self.wdrop = dropouts.wdrop
-
-        # regularizers
-        self.regularizers = regularizers
-
-        # nonlinearity needs to be the same as for RNN!
-        self.nonlinearity = nn.Tanh()#nn.ReLU()
-        self.activation = log_softmax
-        self.ntoken = ntoken    # number of tokens
-        self.beta = beta        # temperature
-
-        self.nsamples = sampling.nsamples
-        print(sampling.frequencies)
-        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if sampling.frequencies is None else sampling.frequencies)
+        # initialize cell
+        if self.cell_type == 'rnn': self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)
+        if self.cell_type == 'linear_rnn': self.rnn = LinearRNNCell(ninp, nhid, dropout=0)
+        if self.cell_type == 'relu_rnn': self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0, nonlinearity='relu')
+        if self.cell_type == 'elu_rnn': self.rnn = ELURNNCell(ninp, nhid, dropout=0)
+        if self.cell_type == 'dexp_rnn': self.rnn = DExpRNNCell(ninp, nhid, dropout=0)
+        if self.cell_type == 'gru': self.rnn = torch.nn.GRU(ninp, nhid, 1, dropout=0)
 
         # set distance function
-        if dist_fn == 'eucl': self.dist_fn = eucl_distance
-        elif dist_fn == 'dot': self.dist_fn = dot_distance
-        elif dist_fn == 'poinc': self.dist_fn = poinc_distance
-        else: self.dist_fn = None
+        self.dist_fn = eucl_distance
 
-        if threshold.method == 'hard': self.threshold = hard_threshold
-        elif threshold.method == 'soft1': self.threshold = soft_threshold1
-        elif threshold.method == 'soft2': self.threshold = soft_threshold2
-        elif threshold.method == 'dynamic': self.threshold = DynamicThreshold(nhid, threshold.nhid, threshold.nlayers, threshold.temp)
-        else: self.threshold = None
+        # initialize encoder
+        self.encoder = nn.Embedding(self.ntoken, self.ninp)
+        self.encoder = self.init_weights(self.encoder, initrange=initrange, path=rnn_config.word_embeddings_path)
+        self.fixed_word_embeddings = (not rnn_config.word_embeddings_path is None)
 
-        self.threshold_mode = threshold.mode
-        self.threshold_method = threshold.method
+        # initialize bias
+        self.decoder = nn.Linear(nhid, ntoken)
+        self.decoder = self.init_weights(self.decoder, initrange=initrange)
+        self.bias = self.decoder.bias
 
-        self.max_radius = threshold.max_radius
-        self.min_radius = threshold.min_radius
-        self.decrease_radius = threshold.decrease_radius
-        self.inf = 1e5
+        # initialize dropouts and apply weight drop
+        self.lockdrop = LockedDropout()
+        self.idrop = nn.Dropout(self.dropouti)
+        self.hdrop = nn.Dropout(self.dropouth)
+        self.drop = nn.Dropout(self.dropout)
+        self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=dropouts.wdrop)
+
+        # initialize sampler
+        self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if sample_config.frequencies is None else samples_config.frequencies)
+
+        # initialize threshold 
+        if self.threshold_func == 'hard': self.treshold = hard_threshold
+        if self.threshold_func == 'soft1': self.threshold = soft_threshold1
+        if self.threshold_func == 'soft2': self.threshold = soft_threshold2
+        if self.threshold_func == 'dynamic': self.threshold = DynamicThreshold(self.nhid, self.threshold_nhid, self.threshold_nlayers, self.threshold_temp)
+        if self.threshold_func == 'none': self.threshold = None
+        self.inf = 1e8
         
       
-
-    def init_weights(self, module, initrange=0.1):
-        module.weight.data.uniform_(-initrange, initrange)
+    def init_weights(self, module, initrange=0.1, path=None):
+        if path is None:
+            module.weight.data.uniform_(-initrange, initrange)
+        else:
+            weights = np.loadtxt(path)
+            module.weight.data = weights
         return module
 
     def _apply_threshold(self, d, h):
@@ -104,6 +104,7 @@ class RNNModel(nn.Module):
             h: initial hidden states h
         '''
 
+        # return d if no thresholding necessary
         if self.threshold_mode == 'none':
             return d
         if self.threshold_mode == 'train' and not self.training:
@@ -111,12 +112,12 @@ class RNNModel(nn.Module):
         if self.threshold_mode == 'eval' and self.training:
             return d
 
+        # two cases: either dynamic or fixed radius
         if self.threshold_method == 'dynamic':
             d, r = self.threshold(d, h, self.inf)
-            print(r.mean(), r.min(), r.max())
-            return d
         else:
-            return self.threshold(d, self.max_radius, self.inf)
+            d = self.threshold(d, self.max_radius, self.inf)
+        return d
 
     def _apply_temperature(self, d):
         return self.beta * d
@@ -128,13 +129,15 @@ class RNNModel(nn.Module):
 
         tanh, sigmoid = nn.Tanh(), nn.Sigmoid()
 
-        if self.mode == 'rnn':
-            output = tanh(words_times_W + hiddens_times_U)
-
-        elif self.mode == 'gru':
-            _ir = sigmoid(words_times_W[:,:self.nhid] + hiddens_times_U[:,:self.nhid])
-            _iz = sigmoid(words_times_W[:,self.nhid:2*self.nhid] + hiddens_times_U[:,self.nhid:2*self.nhid])
-            _in = tanh(words_times_W[:,2*self.nhid:] + _ir * hiddens_times_U[:,2*self.nhid:])
+        if self.cell_type == 'rnn': output = torch.nn.functional.tanh(words_times_W + hiddens_times_U)
+        if self.cell_type == 'linear_rnn': output = words_times_W + hiddens_times_U
+        if self.cell_type == 'relu_rnn': output = torch.nn.functional.relu(words_times_W + hiddens_times_U)
+        if self.cell_type == 'elu_rnn': output = torch.nn.functional.elu(words_times_W + hiddens_times_U)
+        if self.cell_type == 'dexp_rnn': output = self.rnn.dilated_exp(words_times_W + hiddens_times_U)
+        if self.cell_type == 'gru':
+            _ir = torch.nn.functional.sigmoid(words_times_W[:,:self.nhid] + hiddens_times_U[:,:self.nhid])
+            _iz = torch.nn.functional.sigmoid(words_times_W[:,self.nhid:2*self.nhid] + hiddens_times_U[:,self.nhid:2*self.nhid])
+            _in = torch.nn.functional.tanh(words_times_W[:,2*self.nhid:] + _ir * hiddens_times_U[:,2*self.nhid:])
             output = (1 - _iz) * _in + _iz * hidden
 
         return output
@@ -146,6 +149,8 @@ class RNNModel(nn.Module):
 
         emb = embedded_dropout(self.encoder, data, dropout=self.dropoute if self.training else 0)
         emb = self.lockdrop(emb, self.dropouti)
+        if self.fixed_word_embeddings:
+            emb = emb.detach()
 
         raw_output, new_hidden = self.rnn(emb, hidden)          # apply single layer rnn
         raw_output = self.lockdrop(raw_output, self.dropout)    # seq_len x bsz x nhid
@@ -158,11 +163,8 @@ class RNNModel(nn.Module):
 
         if not self.threshold is None:
             d_pos = self._apply_threshold(d_pos, raw_output[:-1])
-
         d_pos = self._apply_temperature(d_pos)
-
-        if not self.bias is None:
-            d_pos = self._apply_bias(d_pos, self.bias[data])
+        d_pos = self._apply_bias(d_pos, self.bias[data])
 
         # hiddens used for negative sampling are all except last
         raw_output = raw_output[:-1].view(seq_len*bsz, -1)
@@ -175,6 +177,8 @@ class RNNModel(nn.Module):
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
         samples_emb = self.lockdrop(samples_emb, self.dropouti)
+        if self.fixed_word_embeddings:
+            samples_emb = samples_emb.detach()
 
         # only one layer for the moment
         weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  
@@ -198,21 +202,14 @@ class RNNModel(nn.Module):
 
             if not self.threshold is None:
                 d_neg = self._apply_threshold(d_neg, raw_output)
-
             d_neg = self._apply_temperature(d_neg)
-
-            if not self.bias is None:
-                d_neg = self._apply_bias(d_neg, self.bias[samples[i]])
+            d_neg = self._apply_bias(d_neg, self.bias[samples[i]])
         
             x[i+1] = -d_neg
 
         softmaxed = -torch.nn.functional.log_softmax(x, dim=0)[0]
         softmax_mapped = softmaxed.view(seq_len, bsz) * binary
         loss = softmax_mapped.mean()
-        
-        # apply regularizer for bias
-        if self.regularizers.bias > 0:
-            loss = loss + (0 if self.bias is None else self.regularizers.bias * torch.norm(self.bias).pow(2))
 
         return loss
 
@@ -241,13 +238,11 @@ class RNNModel(nn.Module):
             if dump_hiddens: hiddens.append(output[data[i]].data.cpu().numpy())
 
             distance = self.dist_fn(hidden[0], output)
+            
             if not self.threshold is None:
                 distance = self._apply_threshold(distance, hidden[0])
-
             distance = self._apply_temperature(distance)
-
-            if not self.bias is None:
-                distance = self._apply_bias(distance, self.bias)
+            distance = self._apply_bias(distance, self.bias)
         
             softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
             raw_loss = -softmaxed[data[i]].item()
