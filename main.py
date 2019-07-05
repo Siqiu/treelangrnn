@@ -91,6 +91,7 @@ parser.add_argument('--mode', type=str, default='rnn')
 args = parser.parse_args()
 args.tied = True
 
+from config.thresholdconfig import *    # get treshold_config
 
 def run(args):
 
@@ -146,8 +147,7 @@ def run(args):
 
     sample_config = Sampling(args.nsamples, frequencies)
     dropout_config = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
-    regularizer_config = Regularizers(args.bias_reg)
-    from config.thresholdconfig import *    # get treshold_config
+    regularizer_config = Regularizers(args.bias_reg) 
 
     model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.mode, sample_config,
                     dropout_config, regularizer_config, threshold_config)
@@ -267,9 +267,9 @@ def run(args):
         optimizer = None
         # Ensure the optimizer is optimizing params, which includes both the model's weights as well as the criterion's weight (i.e. Adaptive Softmax)
         if args.optimizer == 'sgd':
-            if threshold_config.lr > 0. and threshold.method == 'dynamic':
-                optimizer = torch.optim.SGD([{"params": list(model.rnn.parameters()) + list(model.encoder.rnn.parameters()) + list(model.decoder.parameters)},
-                                            {"params": list(model.threshold.parameters()), "lr":threshold_config.lr}], lr=args.lr, weight_decay=args.weight_decay)
+            if threshold_config.lr > 0. and threshold_config.method == 'dynamic':
+                optimizer = torch.optim.SGD([{"params": list(model.rnn.parameters()) + list(model.encoder.parameters()) + list(model.decoder.parameters())},
+                                            {"params": list(model.threshold.parameters()), "lr":threshold_config.lr}], lr=args.lr, weight_decay=args.wdecay)
             else:
                 optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
         if args.optimizer == 'adam':
@@ -374,23 +374,23 @@ def run(args):
     ### MAIN ###
 '''
 
-valid_loss, test_loss = run(args)
+#valid_loss, test_loss = run(args)
 #args.dist_fn = 'poinc'
 #valid_loss, test_loss = run(args)
-'''
+
 results = []
-l = [1, 2, 3, 4, 5]
+l = [50, 75, 100, 150, 200]
 for li in l:
     args.dump_entropy = None
     args.dump_valloss = None
-    args.threshold_radius = li
+    args.threshold_max_radius = li
     valid_loss, test_loss = run(args)
 
     results.append((li, valid_loss))
 
 for result in results:
     print(result)
-'''
+
 '''
 l = [[('adam', 1e-3)],
     [4],

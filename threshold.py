@@ -23,8 +23,8 @@ def soft_threshold2(d, r, inf=1e4):
 	dnew[idxs] = d[idxs]
 	return torch.clamp(dnew, max=inf)
 
-def init_weights(m, a=0, b=2):
-	if btype(m) == nn.Linear:
+def init_weights(m, a=0., b=0.03):
+	if type(m) == nn.Linear:
 		torch.nn.init.uniform_(m.weight, a, b)
 
 class DynamicThreshold(nn.Module):
