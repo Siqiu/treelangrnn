@@ -12,17 +12,10 @@ from visualize.dump import dump, dump_hiddens, dump_words
 from utils.utils import batchify, batchify_padded, get_batch, repackage_hidden
 
 from collections import namedtuple
-Sampling = namedtuple("Sampling", "nsamples frequencies")
-Dropouts = namedtuple("Dropouts", "dropout dropouth dropouti dropoute wdrop")
-Regularizers = namedtuple("Regularizers", "bias")
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
                     help='location of the data corpus')
-parser.add_argument('--emsize', type=int, default=400,
-                    help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=1150,
-                    help='number of hidden units per layer')
 parser.add_argument('--lr', type=float, default=30,
                     help='initial learning rate')
 parser.add_argument('--clip', type=float, default=0.25,
@@ -33,15 +26,6 @@ parser.add_argument('--batch_size', type=int, default=80, metavar='N',
                     help='batch size')
 parser.add_argument('--bptt', type=int, default=70,
                     help='sequence length')
-parser.add_argument('--dropout', type=float, default=0.,
-                    help='dropout applied to layers (0 = no dropout)')
-parser.add_argument('--dropouth', type=float, default=0.,
-                    help='dropout for rnn layers (0 = no dropout)')
-parser.add_argument('--dropouti', type=float, default=0.,
-                    help='dropout for input embedding layers (0 = no dropout)')
-parser.add_argument('--dropoute', type=float, default=0.,
-                    help='dropout to remove words from embedding layer (0 = no dropout)')
-parser.add_argument('--wdrop', type=float, default=0.)
 parser.add_argument('--seed', type=int, default=141,
                     help='random seed')
 parser.add_argument('--nonmono', type=int, default=5,
@@ -53,12 +37,6 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
 randomhash = ''.join(str(time.time()).split('.'))
 parser.add_argument('--save', type=str,  default=randomhash+'.pt',
                     help='path to save the final model')
-parser.add_argument('--alpha', type=float, default=0,
-                    help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')
-parser.add_argument('--beta', type=float, default=0,
-                    help='beta slowness regularization applied on RNN activiation (beta = 0 means no regularization)')
-parser.add_argument('--wdecay', type=float, default=1.2e-6,
-                    help='weight decay applied to all weights')
 parser.add_argument('--resume', type=str,  default='',
                     help='path of model to resume')
 parser.add_argument('--optimizer', type=str,  default='sgd',
@@ -66,18 +44,6 @@ parser.add_argument('--optimizer', type=str,  default='sgd',
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
 
-# new arguments
-parser.add_argument('--temperature', type=float, default=-1,    # < 0 is exp(-d()^2) and > 0 is exp(d()^2)
-                    help='temperature in the exponent of the softmax.')
-parser.add_argument('--nsamples', type=int, default=10,
-                    help='number of negative samples.')
-
-parser.add_argument('--dist_fn', type=str, default='eucl')
-parser.add_argument('--activation_fn', type=str, default='logsoftmax')
-parser.add_argument('--no_bias', action='store_true')
-parser.add_argument('--uni_freq', action='store_true')
-parser.add_argument('--reinit_h', action='store_true')
-parser.add_argument('--bias_reg', type=float, default=0.)
 parser.add_argument('--evaluate_every', type=int, default=1)
 
 # dump settings
@@ -86,14 +52,15 @@ parser.add_argument('--dump_words', action='store_true')
 parser.add_argument('--dump_valloss', type=str, default='valloss')
 parser.add_argument('--dump_entropy', type=str, default='entropy_')
 
-parser.add_argument('--mode', type=str, default='rnn')
-
 args = parser.parse_args()
 args.tied = True
 
-from config.thresholdconfig import *    # get treshold_config
+from config.rnnconfig import *              # get rnn_config
+from config.thresholdconfig import *        # get treshold_config
+from config.regularizationconfig import *   # get reg_config
+from config.sampleconfig import *           # get sample_config
 
-def run(args):
+def run(args, rnn_config, reg_config, threshold_config, sample_config):
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -129,7 +96,7 @@ def run(args):
 
     # get token frequencies and eos_tokens
     frequencies, eos_tokens = None, None
-    if not args.uni_freq: frequencies = corpus.frequencies
+    if not sample_config.uniform_freq: sample_config.frequencies = corpus.frequencies
     eos_tokens = corpus.reset_idxs
 
     # batchify
@@ -145,12 +112,8 @@ def run(args):
     # Build the model
     ###############################################################################
 
-    sample_config = Sampling(args.nsamples, frequencies)
-    dropout_config = Dropouts(args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop)
-    regularizer_config = Regularizers(args.bias_reg) 
 
-    model = RNNModel(ntokens, args.emsize, args.nhid, args.temperature, not args.no_bias, args.dist_fn, args.mode, sample_config,
-                    dropout_config, regularizer_config, threshold_config)
+    model = RNNModel(ntokens, rnn_config, reg_config, sample_config, threshold_config)
 
     ###
     if args.resume:
@@ -269,11 +232,11 @@ def run(args):
         if args.optimizer == 'sgd':
             if threshold_config.lr > 0. and threshold_config.method == 'dynamic':
                 optimizer = torch.optim.SGD([{"params": list(model.rnn.parameters()) + list(model.encoder.parameters()) + list(model.decoder.parameters())},
-                                            {"params": list(model.threshold.parameters()), "lr":threshold_config.lr}], lr=args.lr, weight_decay=args.wdecay)
+                                            {"params": list(model.threshold.parameters()), "lr":threshold_config.lr}], lr=args.lr, weight_decay=reg_config.wdecay)
             else:
-                optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
+                optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=reg_config.wdecay)
         if args.optimizer == 'adam':
-            optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
+            optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=reg_config.wdecay)
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train_loss = train()
@@ -341,7 +304,7 @@ def run(args):
 
                 if args.optimizer == 'sgd' and 't0' not in optimizer.param_groups[0] and (len(best_val_loss)>args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
                     print('Switching to ASGD')
-                    optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0., weight_decay=args.wdecay)
+                    optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0., weight_decay=reg_config.wdecay)
 
                 if epoch in args.when:
                     print('Saving model before learning rate decreased')
@@ -374,23 +337,24 @@ def run(args):
     ### MAIN ###
 '''
 
-#valid_loss, test_loss = run(args)
+valid_loss, test_loss = run(args, rnn_config, reg_config, threshold_config, sample_config)
 #args.dist_fn = 'poinc'
 #valid_loss, test_loss = run(args)
 
+'''
 results = []
 l = [50, 75, 100, 150, 200]
 for li in l:
     args.dump_entropy = None
     args.dump_valloss = None
-    args.threshold_max_radius = li
-    valid_loss, test_loss = run(args)
+    threshold_config.max_radius = li
+    valid_loss, test_loss = run(args, rnn_config, reg_config, threshold_config, sample_config)
 
     results.append((li, valid_loss))
 
 for result in results:
     print(result)
-
+'''
 '''
 l = [[('adam', 1e-3)],
     [4],
