@@ -1,3 +1,4 @@
+from collections import namedtuple
 
 # container to store settings
 RegularizationConfig = namedtuple("RegularizationConfig", "dropout dropouth dropouti dropoute wdrop alpha beta wdecay")
@@ -12,6 +13,6 @@ wdrop = 0.
 # regularizers
 alpha = 0
 beta = 0
-wcdecay = 1.2e-6
+wdecay = 1.2e-6
 
 reg_config = RegularizationConfig(dropout, dropouth, dropouti, dropoute, wdrop, alpha, beta, wdecay)

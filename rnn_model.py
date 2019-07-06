@@ -51,12 +51,12 @@ class RNNModel(nn.Module):
         self.threshold_nhid = threshold_config.nhid
 
         # initialize cell
-        if self.cell_type == 'rnn': self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0)
-        if self.cell_type == 'linear_rnn': self.rnn = LinearRNNCell(ninp, nhid, dropout=0)
-        if self.cell_type == 'relu_rnn': self.rnn = torch.nn.RNN(ninp, nhid, 1, dropout=0, nonlinearity='relu')
-        if self.cell_type == 'elu_rnn': self.rnn = ELURNNCell(ninp, nhid, dropout=0)
-        if self.cell_type == 'dexp_rnn': self.rnn = DExpRNNCell(ninp, nhid, dropout=0)
-        if self.cell_type == 'gru': self.rnn = torch.nn.GRU(ninp, nhid, 1, dropout=0)
+        if self.cell_type == 'rnn': self.rnn = torch.nn.RNN(self.ninp, self.nhid, 1, dropout=0)
+        if self.cell_type == 'linear_rnn': self.rnn = LinearRNNCell(self.ninp, self.nhid, dropout=0)
+        if self.cell_type == 'relu_rnn': self.rnn = torch.nn.RNN(self.ninp, self.nhid, 1, dropout=0, nonlinearity='relu')
+        if self.cell_type == 'elu_rnn': self.rnn = ELURNNCell(self.ninp, self.nhid, dropout=0)
+        if self.cell_type == 'dexp_rnn': self.rnn = DExpRNNCell(self.ninp, self.nhid, dropout=0)
+        if self.cell_type == 'gru': self.rnn = torch.nn.GRU(self.ninp, self.nhid, 1, dropout=0)
 
         # set distance function
         self.dist_fn = eucl_distance
@@ -67,7 +67,7 @@ class RNNModel(nn.Module):
         self.fixed_word_embeddings = (not rnn_config.word_embeddings_path is None)
 
         # initialize bias
-        self.decoder = nn.Linear(nhid, ntoken)
+        self.decoder = nn.Linear(self.nhid, ntoken)
         self.decoder = self.init_weights(self.decoder, initrange=initrange)
         self.bias = self.decoder.bias
 
@@ -76,7 +76,7 @@ class RNNModel(nn.Module):
         self.idrop = nn.Dropout(self.dropouti)
         self.hdrop = nn.Dropout(self.dropouth)
         self.drop = nn.Dropout(self.dropout)
-        self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=dropouts.wdrop)
+        self.rnn = WeightDrop(self.rnn, ['weight_hh_l0'], dropout=reg_config.wdrop)
 
         # initialize sampler
         self.sampler = NegativeSampler(self.nsamples, torch.ones(self.ntoken) if sample_config.frequencies is None else samples_config.frequencies)
@@ -113,10 +113,10 @@ class RNNModel(nn.Module):
             return d
 
         # two cases: either dynamic or fixed radius
-        if self.threshold_method == 'dynamic':
+        if self.threshold_func == 'dynamic':
             d, r = self.threshold(d, h, self.inf)
         else:
-            d = self.threshold(d, self.max_radius, self.inf)
+            d = self.threshold(d, self.threshold_max_r, self.inf)
         return d
 
     def _apply_temperature(self, d):
@@ -133,7 +133,7 @@ class RNNModel(nn.Module):
         if self.cell_type == 'linear_rnn': output = words_times_W + hiddens_times_U
         if self.cell_type == 'relu_rnn': output = torch.nn.functional.relu(words_times_W + hiddens_times_U)
         if self.cell_type == 'elu_rnn': output = torch.nn.functional.elu(words_times_W + hiddens_times_U)
-        if self.cell_type == 'dexp_rnn': output = self.rnn.dilated_exp(words_times_W + hiddens_times_U)
+        if self.cell_type == 'dexp_rnn': output = self.rnn.module.dilated_exp(words_times_W + hiddens_times_U)
         if self.cell_type == 'gru':
             _ir = torch.nn.functional.sigmoid(words_times_W[:,:self.nhid] + hiddens_times_U[:,:self.nhid])
             _iz = torch.nn.functional.sigmoid(words_times_W[:,self.nhid:2*self.nhid] + hiddens_times_U[:,self.nhid:2*self.nhid])
@@ -263,8 +263,8 @@ class RNNModel(nn.Module):
 
         all_hiddens = all_hiddens if not eos_tokens is None else hiddens
 
-        if self.decrease_radius > 0:
-            self.max_radius = max(self.min_radius, self.max_radius * 0.95)
+        if self.threshold_decr > 0:
+            self.threshold_max_r = max(self.threshold_min_r, self.threshold_max_r * 0.95)
         
         if dump_hiddens:
             return total_loss, np.array(entropy), all_hiddens

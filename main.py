@@ -230,7 +230,7 @@ def run(args, rnn_config, reg_config, threshold_config, sample_config):
         optimizer = None
         # Ensure the optimizer is optimizing params, which includes both the model's weights as well as the criterion's weight (i.e. Adaptive Softmax)
         if args.optimizer == 'sgd':
-            if threshold_config.lr > 0. and threshold_config.method == 'dynamic':
+            if threshold_config.lr > 0. and threshold_config.func == 'dynamic':
                 optimizer = torch.optim.SGD([{"params": list(model.rnn.parameters()) + list(model.encoder.parameters()) + list(model.decoder.parameters())},
                                             {"params": list(model.threshold.parameters()), "lr":threshold_config.lr}], lr=args.lr, weight_decay=reg_config.wdecay)
             else:

@@ -6,13 +6,12 @@ import numpy as np
 class LinearRNNCell(nn.RNN):
 
 	def __init__(self, ninp, nhid, dropout=0):
-
-		super(ELURNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
+		super(LinearRNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
 
 	def forward(self, input_, h_0):
 
 		seq_len, bsz, ninp = input_.size()
-		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
+		in_times_W = torch.nn.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
 	
 		h = h_0
 		output = []
@@ -35,7 +34,7 @@ class ELURNNCell(nn.RNN):
 	def forward(self, input_, h_0):
 
 		seq_len, bsz, ninp = input_.size()
-		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
+		in_times_W = torch.nn.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
 	
 		h = h_0
 		output = []
@@ -53,17 +52,17 @@ class DExpRNNCell(nn.RNN):
 
 	def __init__(self, ninp, nhid, dropout=0, alpha=0.1):
 
-		super(ELURNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
+		super(DExpRNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
 		self.alpha = alpha
 
-	def dilated_exp(x):
+	def dilated_exp(self, x):
 		return (torch.exp(self.alpha * x) - 1) / self.alpha
 
 
 	def forward(self, input_, h_0):
 
 		seq_len, bsz, ninp = input_.size()
-		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
+		in_times_W = torch.nn.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
 	
 		h = h_0
 		output = []
