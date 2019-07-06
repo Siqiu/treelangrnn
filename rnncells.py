@@ -5,20 +5,20 @@ import numpy as np
 
 class LinearRNNCell(nn.RNN):
 
-	def __init__(ninp, nhid, dropout=0):
+	def __init__(self, ninp, nhid, dropout=0):
 
 		super(ELURNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
 
 	def forward(self, input_, h_0):
 
 		seq_len, bsz, ninp = input_.size()
-		in_times_W = torch.functional.linear(input_, self.weights_ih_l0, self.bias_ih_l0)
+		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
 	
 		h = h_0
 		output = []
 		for t in range(seq_len):
 
-			h_times_U = torch.nn.functional.linear(h, self.weights_hh_l0, self.bias_hh_l0)
+			h_times_U = torch.nn.functional.linear(h, self.weight_hh_l0, self.bias_hh_l0)
 			output.append(in_times_W[t] + h_times_U)
 			h = output[-1]
 
@@ -27,7 +27,7 @@ class LinearRNNCell(nn.RNN):
 
 class ELURNNCell(nn.RNN):
 
-	def __init__(ninp, nhid, dropout=0, alpha=1.0):
+	def __init__(self, ninp, nhid, dropout=0, alpha=1.0):
 
 		super(ELURNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
 		self.elu = nn.ELU(alpha=alpha)
@@ -35,13 +35,13 @@ class ELURNNCell(nn.RNN):
 	def forward(self, input_, h_0):
 
 		seq_len, bsz, ninp = input_.size()
-		in_times_W = torch.functional.linear(input_, self.weights_ih_l0, self.bias_ih_l0)
+		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
 	
 		h = h_0
 		output = []
 		for t in range(seq_len):
 
-			h_times_U = torch.nn.functional.linear(h, self.weights_hh_l0, self.bias_hh_l0)
+			h_times_U = torch.nn.functional.linear(h, self.weight_hh_l0, self.bias_hh_l0)
 			output.append(self.elu(in_times_W[t] + h_times_U))
 			h = output[-1]
 
@@ -51,7 +51,7 @@ class ELURNNCell(nn.RNN):
 class DExpRNNCell(nn.RNN):
 
 
-	def __init__(ninp, nhid, dropout=0, alpha=0.1):
+	def __init__(self, ninp, nhid, dropout=0, alpha=0.1):
 
 		super(ELURNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
 		self.alpha = alpha
@@ -63,14 +63,45 @@ class DExpRNNCell(nn.RNN):
 	def forward(self, input_, h_0):
 
 		seq_len, bsz, ninp = input_.size()
-		in_times_W = torch.functional.linear(input_, self.weights_ih_l0, self.bias_ih_l0)
+		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
 	
 		h = h_0
 		output = []
 		for t in range(seq_len):
 
-			h_times_U = torch.nn.functional.linear(h, self.weights_hh_l0, self.bias_hh_l0)
+			h_times_U = torch.nn.functional.linear(h, self.weight_hh_l0, self.bias_hh_l0)
 			output.append(self.dilated_exp(in_times_W[t] + h_times_U))
+			h = output[-1]
+
+		return torch.cat(output, 1), None
+
+class DynamicRNNCell(nn.RNN):
+
+	def __init__(self, ninp, nhid, dropout=0, k=4):
+
+		super(DynamicRNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
+		self.W1 = torch.randn(k * nhid, nhid)
+		self.W2 = torch.randn(k, ninp)
+		self.k = k
+		self.ninp, self.nhid = ninp, nhid
+
+	def _in_times_W(self, in_, h):
+		Wprime = torch.nn.functional.linear(h, self.W1).view(self.nhid, self.k)
+		W = torch.mm(Wprime, self.W2)
+		return torch.nn.functional.linear(in_, W, self.bias_ih_l0)
+
+	def forward(self, input_, h_0):
+
+		seq_len, bsz, ninp = input_.size()
+		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
+	
+		h = h_0
+		output = []
+		for t in range(seq_len):
+
+			in_times_W = self._in_times_W(input_[t], h)
+			h_times_U = torch.nn.functional.linear(h, self.weight_hh_l0, self.bias_hh_l0)
+			output.append(torch.nn.functional.tanh(in_times_W + h_times_U))
 			h = output[-1]
 
 		return torch.cat(output, 1), None
