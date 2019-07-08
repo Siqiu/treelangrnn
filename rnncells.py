@@ -92,7 +92,7 @@ class DynamicRNNCell(nn.RNN):
 	def forward(self, input_, h_0):
 
 		seq_len, bsz, ninp = input_.size()
-		in_times_W = torch.functional.linear(input_, self.weight_ih_l0, self.bias_ih_l0)
+		in_times_W = torch.functional.linear(inpu)
 	
 		h = h_0
 		output = []
