@@ -79,8 +79,8 @@ class DynamicRNNCell(nn.RNN):
 	def __init__(self, ninp, nhid, dropout=0, k=4):
 
 		super(DynamicRNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
-		self.W1 = torch.randn(k * nhid, nhid)
-		self.W2 = torch.randn(k, ninp)
+		self.W1 = torch.randn(k * nhid, nhid, dtype=torch.float).cuda()
+		self.W2 = torch.randn(k, ninp, dtype=torch.float).cuda()
 		self.k = k
 		self.ninp, self.nhid = ninp, nhid
 
@@ -91,7 +91,7 @@ class DynamicRNNCell(nn.RNN):
 
 	def forward(self, input_, h_0):
 
-		seq_len, bsz, ninp = input_.size()
+		seq_len, ninp = input_.size()
 	
 		h = h_0
 		output = []
@@ -102,5 +102,5 @@ class DynamicRNNCell(nn.RNN):
 			output.append(torch.nn.functional.tanh(in_times_W + h_times_U))
 			h = output[-1]
 
-		return torch.cat(output, 1), None
+		return torch.cat(output, 1)
 
