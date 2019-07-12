@@ -128,8 +128,6 @@ class RNNModel(nn.Module):
 
     def forward(self, data, binary, hidden):
 
-        loss, _ = self.evaluate(data, eos_tokens=[13])
-        return loss
         # get batch size and sequence length
         seq_len, bsz = data.size()
 
@@ -167,7 +165,6 @@ class RNNModel(nn.Module):
             samples_emb = samples_emb.detach()
 
         # only one layer for the moment
-        weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  
         weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
 
         # reshape samples for indexing and precompute the inputs to nonlinearity
@@ -219,7 +216,7 @@ class RNNModel(nn.Module):
             #all_words_times_W = self.rnn.module._in_times_W(all_words, hidden)
 
             #hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
-            output = self.rnn(all_words, hidden)[0]#self._forward(all_words_times_W, hidden_times_U, hidden[0].repeat(self.ntoken, 1))
+            output = self.rnn(all_words, hidden, do_svd=False)[0]#self._forward(all_words_times_W, hidden_times_U, hidden[0].repeat(self.ntoken, 1))
 
             if dump_hiddens: pass#hiddens.append(output[data[i]].data.cpu().numpy())
 

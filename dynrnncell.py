@@ -16,11 +16,21 @@ class DynamicRNNCell(nn.RNN):
 		modules = [mod for pair in zip(linears, relus) for mod in pair]
 		self.net = nn.Sequential(*modules)
 
-	def forward(self, input_, h_0):
+		self.U, self.S, self.V = torch.svd(self.weight_ih_l0)
+
+	def _in_times_W(self, input_, h):
+
+		_in_times_V = torch.nn.functional.linear.(input_, self.V.t())
+		S = self.net(h)
+		_in_times_SV = S * _in_times_V
+		_in_times_USV = torch.nn.functional.linear(_in_times_SV, self.U)
+		return _in_times_USV
+
+	def forward(self, input_, h_0, do_svd=True):
 
 		# assume nhid == ninp!!!
-		u, s, v = torch.svd(self.weight_ih_l0)
-		v = v.t()
+		if do_svd:
+			self.U, self.S, self.V = torch.svd(self.weight_ih_l0)
 
 		seq_len, ninp = input_.size()
 	
@@ -28,10 +38,7 @@ class DynamicRNNCell(nn.RNN):
 		output = []
 		for t in range(seq_len):
 
-			s = self.net(h).pow(2)
-			weight_ih_l0 = torch.mm(u, torch.mm(torch.diag(s[0][0]), v))
-
-			in_times_W = torch.nn.functional.linear(input_[t], weight_ih_l0, self.bias_ih_l0)
+			in_times_W = self._in_times_W(input_[t], h)
 			h_times_U = torch.nn.functional.linear(h, self.weight_hh_l0, self.bias_hh_l0)
 			output.append(torch.nn.functional.tanh(in_times_W + h_times_U))
 			h = output[-1]
