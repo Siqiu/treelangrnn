@@ -5,14 +5,14 @@ import numpy as np
 
 class DynamicRNNCell(nn.RNN):
 
-	def __init__(self, ninp, nhid, dropout=0):
+	def __init__(self, ninp, nhid, dropout=0, nlayers=4):
 
 		super(DynamicRNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
 		self.ninp, self.nhid = ninp, nhid
 
 		# build neural net here
-		linears = [nn.Linear(nin, nhid) if l == 0 else nn.Linear(nhid, nhid) for l in range(nlayers)]
-		relus = [nn.ReLU() for l in range(nlayers)]
+		linears = [nn.Linear(ninp, nhid) if l == 0 else nn.Linear(nhid, nhid) for l in range(nlayers)]
+		relus = [nn.Tanh() for l in range(nlayers)]
 		modules = [mod for pair in zip(linears, relus) for mod in pair]
 		self.net = nn.Sequential(*modules)
 
@@ -28,8 +28,8 @@ class DynamicRNNCell(nn.RNN):
 		output = []
 		for t in range(seq_len):
 
-			s = self.net(h)
-			weight_ih_l0 = torch.mm(u, torch.mm(torch.diag(s), v))
+			s = self.net(h).pow(2)
+			weight_ih_l0 = torch.mm(u, torch.mm(torch.diag(s[0][0]), v))
 
 			in_times_W = torch.nn.functional.linear(input_[t], weight_ih_l0, self.bias_ih_l0)
 			h_times_U = torch.nn.functional.linear(h, self.weight_hh_l0, self.bias_hh_l0)

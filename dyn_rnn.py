@@ -11,7 +11,8 @@ from sample import NegativeSampler
 from utils.utils import repackage_hidden
 
 from eucl_distance.distance import eucl_distance
-from rnncells import LinearRNNCell, ELURNNCell, DExpRNNCell, DynamicRNNCell
+#from rnncells import LinearRNNCell, ELURNNCell, DExpRNNCell, DynamicRNNCell
+from dynrnncell import DynamicRNNCell
 from threshold import hard_threshold, soft_threshold1, soft_threshold2, DynamicThreshold
 
 class RNNModel(nn.Module):
@@ -51,7 +52,7 @@ class RNNModel(nn.Module):
         self.threshold_nhid = threshold_config.nhid
 
         # initialize cell
-        self.rnn = DynamicRNNCell(self.ninp, self.nhid, dropout=0, k=4)
+        self.rnn = DynamicRNNCell(self.ninp, self.nhid, dropout=0)
 
         # set distance function
         self.dist_fn = eucl_distance
@@ -90,7 +91,7 @@ class RNNModel(nn.Module):
             module.weight.data.uniform_(-initrange, initrange)
         else:
             weights = np.loadtxt(path)
-            module.weight.data = weights
+            module.weight.data = torch.FloatTensor(weights).cuda()
         return module
 
     def _apply_threshold(self, d, h):
@@ -127,6 +128,8 @@ class RNNModel(nn.Module):
 
     def forward(self, data, binary, hidden):
 
+        loss, _ = self.evaluate(data, eos_tokens=[13])
+        return loss
         # get batch size and sequence length
         seq_len, bsz = data.size()
 
@@ -200,8 +203,8 @@ class RNNModel(nn.Module):
     def evaluate(self, data, eos_tokens=None, dump_hiddens=False):
 
         # get weights and compute WX for all words
-        weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  # only one layer for the moment
-        weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
+        #weights_ih, bias_ih = self.rnn.module.weight_ih_l0, self.rnn.module.bias_ih_l0  # only one layer for the moment
+        #weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
 
         all_words = torch.LongTensor([i for i in range(self.ntoken)]).cuda()
         all_words = embedded_dropout(self.encoder, all_words, dropout=self.dropoute if self.training else 0)
@@ -213,12 +216,12 @@ class RNNModel(nn.Module):
         entropy, hiddens, all_hiddens = [], [], []
         while i < data.size(0):
 
-            all_words_times_W = self.rnn.module._in_times_W(all_words, hidden)
+            #all_words_times_W = self.rnn.module._in_times_W(all_words, hidden)
 
-            hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
-            output = self._forward(all_words_times_W, hidden_times_U, hidden[0].repeat(self.ntoken, 1))
+            #hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
+            output = self.rnn(all_words, hidden)[0]#self._forward(all_words_times_W, hidden_times_U, hidden[0].repeat(self.ntoken, 1))
 
-            if dump_hiddens: hiddens.append(output[data[i]].data.cpu().numpy())
+            if dump_hiddens: pass#hiddens.append(output[data[i]].data.cpu().numpy())
 
             distance = self.dist_fn(hidden[0], output)
             
@@ -228,15 +231,16 @@ class RNNModel(nn.Module):
             distance = self._apply_bias(distance, self.bias)
         
             softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
-            raw_loss = -softmaxed[data[i]].item()
+            raw_loss = -softmaxed[data[i]]#.item()
 
             total_loss += raw_loss / data.size(0)
             entropy.append(raw_loss)
 
             if not eos_tokens is None and data[i].data.cpu().numpy()[0] in eos_tokens:
                 hidden = self.init_hidden(1)
+                hidden = hidden.detach()
                 if dump_hiddens:
-                    all_hiddens.append(hiddens)
+                    pass#all_hiddens.append(hiddens)
                     hiddens = []
             else:
                 hidden = output[data[i]].view(1, 1, -1)
