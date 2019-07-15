@@ -65,7 +65,7 @@ class RNNModel(nn.Module):
         self.encoder = nn.Embedding(self.ntoken, self.ninp)
         self.encoder = self.init_weights(self.encoder, initrange=initrange, path=rnn_config.word_embeddings_path)
         self.fixed_word_embeddings = (not rnn_config.word_embeddings_path is None)
-
+        print(self.encoder.weight, self.fixed_word_embeddings)
         # initialize bias
         self.decoder = nn.Linear(self.nhid, ntoken)
         self.decoder = self.init_weights(self.decoder, initrange=initrange)
@@ -95,7 +95,7 @@ class RNNModel(nn.Module):
             module.weight.data.uniform_(-initrange, initrange)
         else:
             weights = np.loadtxt(path)
-            module.weight.data = weights
+            module.weight.data = torch.FloatTensor(weights).cuda()
         return module
 
     def _apply_threshold(self, d, h):
@@ -103,9 +103,11 @@ class RNNModel(nn.Module):
             d: pairwise distances between h and h_+
             h: initial hidden states h
         '''
-
+        alpha = 0.0001
+        #return torch.clamp((torch.exp(alpha*d)-1)/alpha, max=self.inf)
         # return d if no thresholding necessary
         if self.threshold_mode == 'none':
+            #print(self.threshold_mode)
             return d
         if self.threshold_mode == 'train' and not self.training:
             return d
@@ -115,6 +117,7 @@ class RNNModel(nn.Module):
         # two cases: either dynamic or fixed radius
         if self.threshold_func == 'dynamic':
             d, r = self.threshold(d, h, self.inf)
+            #print(d.min(), d.max(), r.min(), r.max())
         else:
             d = self.threshold(d, self.threshold_max_r, self.inf)
         return d
@@ -160,7 +163,7 @@ class RNNModel(nn.Module):
         # initialize loss w/ positive terms
         # compute distances between consecutive hidden states
         d_pos = (raw_output[1:] - raw_output[:-1]).norm(dim=2).pow(2)
-
+        
         if not self.threshold is None:
             d_pos = self._apply_threshold(d_pos, raw_output[:-1])
         d_pos = self._apply_temperature(d_pos)

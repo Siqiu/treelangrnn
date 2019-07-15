@@ -50,7 +50,7 @@ class ELURNNCell(nn.RNN):
 class DExpRNNCell(nn.RNN):
 
 
-	def __init__(self, ninp, nhid, dropout=0, alpha=0.1):
+	def __init__(self, ninp, nhid, dropout=0, alpha=0.0001):
 
 		super(DExpRNNCell, self).__init__(ninp, nhid, 1, dropout=dropout)
 		self.alpha = alpha

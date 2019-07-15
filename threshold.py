@@ -23,7 +23,7 @@ def soft_threshold2(d, r, inf=1e4):
 	dnew[idxs] = d[idxs]
 	return torch.clamp(dnew, max=inf)
 
-def init_weights(m, a=0., b=50):
+def init_weights(m, a=0., b=15):
 	if type(m) == nn.Linear:
 		torch.nn.init.uniform_(m.weight, a, b)
 	return m
@@ -50,7 +50,7 @@ class DynamicThreshold(nn.Module):
 	def forward(self, d, hiddens, inf=1e4):
 
 		# get r from neural net
-		r = self.net(hiddens).pow(2)
+		r = self.net(hiddens)
 		if r.size(0) > 1: r = r.view(d.size())
 
 		if len(d.size()) > 1:

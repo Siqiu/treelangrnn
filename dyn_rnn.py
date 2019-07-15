@@ -128,9 +128,10 @@ class RNNModel(nn.Module):
 
     def forward(self, data, binary, hidden):
 
+        #self.rnn.module.U, self.rnn.module.S, self.rnn.module.V = torch.svd(self.rnn.module.weight_ih_l0)
         # get batch size and sequence length
         seq_len, bsz = data.size()
-
+        
         emb = embedded_dropout(self.encoder, data, dropout=self.dropoute if self.training else 0)
         emb = self.lockdrop(emb, self.dropouti)
         if self.fixed_word_embeddings:
@@ -140,6 +141,7 @@ class RNNModel(nn.Module):
         raw_output = self.lockdrop(raw_output, self.dropout)    # seq_len x bsz x nhid
         raw_output = raw_output.view(seq_len, bsz, -1)          # reshape for concat
         raw_output = torch.cat((hidden, raw_output), 0)         # concatenate initial hidden state
+        #print(self.rnn.module.weight_ih_l0)
 
         # initialize loss w/ positive terms
         # compute distances between consecutive hidden states
@@ -160,7 +162,7 @@ class RNNModel(nn.Module):
         # process negative samples
         samples = self.sampler(bsz, seq_len)    # (nsamples x bsz x seq_len)
         samples_emb = embedded_dropout(self.encoder, samples, dropout=self.dropoute if self.training else 0)
-        samples_emb = self.lockdrop(samples_emb, self.dropouti)
+        samples_emb = self.lockdrop(samples_emb, self.dropouti).view(self.nsamples, bsz*seq_len, -1)
         if self.fixed_word_embeddings:
             samples_emb = samples_emb.detach()
 
@@ -175,6 +177,7 @@ class RNNModel(nn.Module):
         for i in range(self.nsamples):
 
             # compute output of negative samples
+            #print(samples_emb[i].size(), raw_output.size())
             samples_times_W = self.rnn.module._in_times_W(samples_emb[i], raw_output)
             output = self._forward(samples_times_W, hiddens_times_U, raw_output)
             output = self.lockdrop(output.view(1, output.size(0), -1), self.dropout)
@@ -194,6 +197,7 @@ class RNNModel(nn.Module):
         softmax_mapped = softmaxed.view(seq_len, bsz) * binary
         loss = softmax_mapped.mean()
 
+        #self.rnn.module.weight_ih_l0 = torch.mm(self.rnn.module.U, torch.mm(torch.diag(self.rnn.module.S), self.rnn.module.V.t()))
         return loss
 
 
@@ -204,7 +208,7 @@ class RNNModel(nn.Module):
         #weights_hh, bias_hh = self.rnn.module.weight_hh_l0, self.rnn.module.bias_hh_l0
 
         all_words = torch.LongTensor([i for i in range(self.ntoken)]).cuda()
-        all_words = embedded_dropout(self.encoder, all_words, dropout=self.dropoute if self.training else 0)
+        all_words = embedded_dropout(self.encoder, all_words, dropout=self.dropoute if self.training else 0).view(1, self.ntoken, -1)
 
         # iterate over data set and compute loss
         total_loss, hidden = 0, self.init_hidden(1)
@@ -216,19 +220,20 @@ class RNNModel(nn.Module):
             #all_words_times_W = self.rnn.module._in_times_W(all_words, hidden)
 
             #hidden_times_U = torch.nn.functional.linear(hidden[0].repeat(self.ntoken, 1), weights_hh, bias_hh)
-            output = self.rnn(all_words, hidden, do_svd=False)[0]#self._forward(all_words_times_W, hidden_times_U, hidden[0].repeat(self.ntoken, 1))
+            #print(all_words.size(), hidden[0].repeat(1,self.ntoken,1)[0].size())
+            output = self.rnn(all_words, hidden[0].repeat(1,self.ntoken,1))[0]#self._forward(all_words_times_W, hidden_times_U, hidden[0].repeat(self.ntoken, 1))
 
             if dump_hiddens: pass#hiddens.append(output[data[i]].data.cpu().numpy())
 
-            distance = self.dist_fn(hidden[0], output)
-            
+            distance = self.dist_fn(hidden[0], output[0])
+            #print(output.size(), distance.size(), hidden) 
             if not self.threshold is None:
                 distance = self._apply_threshold(distance, hidden[0])
             distance = self._apply_temperature(distance)
             distance = self._apply_bias(distance, self.bias)
         
             softmaxed = torch.nn.functional.log_softmax(-distance, dim=0)
-            raw_loss = -softmaxed[data[i]]#.item()
+            raw_loss = -softmaxed[data[i]].item()
 
             total_loss += raw_loss / data.size(0)
             entropy.append(raw_loss)
@@ -240,8 +245,8 @@ class RNNModel(nn.Module):
                     pass#all_hiddens.append(hiddens)
                     hiddens = []
             else:
-                hidden = output[data[i]].view(1, 1, -1)
-            hidden = repackage_hidden(hidden)
+                hidden = output[0][data[i]].view(1, 1, -1)
+            hidden = repackage_hidden(hidden).detach()
 
             i = i + 1
 

@@ -7,6 +7,7 @@ import torch.nn as nn
 
 from utils import data
 from rnn_model import RNNModel
+#from dyn_rnn import RNNModel
 
 from visualize.dump import dump, dump_hiddens, dump_words
 from utils.utils import batchify, batchify_padded, get_batch, repackage_hidden
@@ -98,6 +99,7 @@ def run(args, rnn_config, reg_config, threshold_config, sample_config):
     frequencies, eos_tokens = None, None
     if not sample_config.uniform_freq: sample_config.frequencies = corpus.frequencies
     eos_tokens = corpus.reset_idxs
+    print('EOS:' + str(eos_tokens))
 
     # batchify
     eval_batch_size = 1
@@ -145,7 +147,8 @@ def run(args, rnn_config, reg_config, threshold_config, sample_config):
             dump_hiddens(hiddens, 'hiddens_' + str(epoch))
         else:
             loss, entropy = model.evaluate(data_source, eos_tokens)
-        
+
+        #loss = loss.item()
         if args.dump_words:
             W = model.rnn.module.weight_ih_l0.detach()
             dump_words(torch.nn.functional.linear(model.encoder.weight.detach(), W).detach().cpu().numpy(), 'words_xW_' + str(epoch))
@@ -240,12 +243,13 @@ def run(args, rnn_config, reg_config, threshold_config, sample_config):
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train_loss = train()
-            
+            #print(model.encoder.weight)
+                
             # look at singular values of [W, U]
             #W = model.rnn.module.weight_ih_l0.detach()
             #U = model.rnn.module.weight_hh_l0.detach()
             #u, s, v = torch.svd(torch.cat([W, U], 1))
-            #print(s)
+            #print(u, s, v)
 
             #_, s, _= np.linalg.svd(model.rnn.module.weight_hh_l0.cpu().detach().numpy())
             W_norm.append(model.rnn.module.weight_ih_l0.norm())
@@ -330,6 +334,8 @@ def run(args, rnn_config, reg_config, threshold_config, sample_config):
 
     dump(np.array(W_norm), 'W_norm')
     dump(np.array(U_norm), 'U_norm')
+    dump(model.rnn.module.weight_ih_l0.detach().cpu().numpy(), 'W')
+    dump(model.rnn.module.weight_hh_l0.detach().cpu().numpy(), 'U')
 
     return np.array(valid_loss), test_loss
 
@@ -343,14 +349,18 @@ valid_loss, test_loss = run(args, rnn_config, reg_config, threshold_config, samp
 
 '''
 results = []
-l = [50, 75, 100, 150, 200]
-for li in l:
+l = [('adam', 0.001)]
+from collections import namedtuple
+for opt, lr in l:
     args.dump_entropy = None
     args.dump_valloss = None
-    threshold_config.max_radius = li
+    args.lr = lr
+    args.optimizer = opt
+    #rnn_config = RNNConfig(li, 100, 100, 1, None)
+    #threshold_config = ThresholdConfig(threshold_config.func, threshold_config.mode, threshold_config.temp, threshold_config.min_radius, li, threshold_config.decrease_radius,  threshold_config.nlayers, threshold_config.nhid, threshold_config.lr)
     valid_loss, test_loss = run(args, rnn_config, reg_config, threshold_config, sample_config)
 
-    results.append((li, valid_loss))
+    results.append(((opt, lr), valid_loss))
 
 for result in results:
     print(result)
