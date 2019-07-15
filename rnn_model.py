@@ -88,6 +88,12 @@ class RNNModel(nn.Module):
         if self.threshold_func == 'dynamic': self.threshold = DynamicThreshold(self.nhid, self.threshold_nhid, self.threshold_nlayers, self.threshold_temp)
         if self.threshold_func == 'none': self.threshold = None
         self.inf = 1e8
+
+        # more biases
+        self.lin_b_h = nn.Linear(self.nhid, 1)
+        self.b_h = self.lin_b_h.bias
+        self.lin_b_w = nn.Linear(self.nhid, self.ntoken)
+        self.b_w = self.lin_b_w.bias
         
       
     def init_weights(self, module, initrange=0.1, path=None):
@@ -98,7 +104,7 @@ class RNNModel(nn.Module):
             module.weight.data = torch.FloatTensor(weights).cuda()
         return module
 
-    def _apply_threshold(self, d, h):
+    def _apply_threshold(self, d, h, b_w=None):
         '''
             d: pairwise distances between h and h_+
             h: initial hidden states h
@@ -116,10 +122,10 @@ class RNNModel(nn.Module):
 
         # two cases: either dynamic or fixed radius
         if self.threshold_func == 'dynamic':
-            d, r = self.threshold(d, h, self.inf)
+            d, r = self.threshold(d + b_w + self.b_h, h, self.inf)
             #print(d.min(), d.max(), r.min(), r.max())
         else:
-            d = self.threshold(d, self.threshold_max_r, self.inf)
+            d = self.threshold(d + b_w + self.b_h, self.threshold_max_r, self.inf)
         return d
 
     def _apply_temperature(self, d):
@@ -165,7 +171,7 @@ class RNNModel(nn.Module):
         d_pos = (raw_output[1:] - raw_output[:-1]).norm(dim=2).pow(2)
         
         if not self.threshold is None:
-            d_pos = self._apply_threshold(d_pos, raw_output[:-1])
+            d_pos = self._apply_threshold(d_pos, raw_output[:-1], self.b_w[data])
         d_pos = self._apply_temperature(d_pos)
         d_pos = self._apply_bias(d_pos, self.bias[data])
 
@@ -204,7 +210,7 @@ class RNNModel(nn.Module):
             d_neg = self.dist_fn(raw_output, output)
 
             if not self.threshold is None:
-                d_neg = self._apply_threshold(d_neg, raw_output)
+                d_neg = self._apply_threshold(d_neg, raw_output, self.b_w[samples[i]])
             d_neg = self._apply_temperature(d_neg)
             d_neg = self._apply_bias(d_neg, self.bias[samples[i]])
         
@@ -243,7 +249,7 @@ class RNNModel(nn.Module):
             distance = self.dist_fn(hidden[0], output)
             
             if not self.threshold is None:
-                distance = self._apply_threshold(distance, hidden[0])
+                distance = self._apply_threshold(distance, hidden[0], self.b_w)
             distance = self._apply_temperature(distance)
             distance = self._apply_bias(distance, self.bias)
         
